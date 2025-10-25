@@ -329,3 +329,40 @@ input.score-left {
     background-image: none !important;
     background-color: var(--score-right) !important;
   }
+ /* Dark mode: keep original button colors */
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+  html, body { background:#1e1e1e !important; color:#e6e6e6 !important; }
+  section > div { background:#2a2a2a; border-color:#3a3a3a; }
+
+  /* Form fields — DO NOT touch buttons */
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  input[type="email"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="time"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  select,
+  textarea {
+    background-color:#242424 !important;
+    color:#e6e6e6 !important;
+    border-color:#3a3a3a !important;
+  }
+  ::placeholder { color:#b0b0b0; }
+
+  /* (Optional) re-affirm your named color classes */
+  .yellow input[type='button'], input.yellow { background-color: rgba(255,255,0,1) !important; }
+  .grey   input[type='button'], input.grey   { background-color: rgba(128,128,128,1) !important; }
+  .blue   input[type='button'], input.blue   { background-color: rgba(0,0,220,1) !important; }
+  .red    input[type='button'], input.red    { background-color: rgba(220,0,0,1) !important; }
+  .dark-purple input[type='button'], input.dark-purple { background-color: rgb(81,62,132) !important; }
+  .purple input[type='button'], input.purple { background-color: rgba(128,0,255,1) !important; }
+  .green  input[type='button'], input.green  { background-color: rgb(106,163,36) !important; }
+  .orange input[type='button'], input.orange { background-color: rgba(255,128,0,1) !important; }
+}

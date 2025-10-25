@@ -84,3 +84,5 @@ void processCurrentTide();
 void allTest();
 void cleanupOldSettings();
 void cleanupOldSettings(const String &fileType);             // new behavior
+void getsamplePhoto();
+void getNoaaWeather();

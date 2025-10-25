@@ -18,20 +18,22 @@
 #define HAS_BUZZER    true
 #define HAS_PHOTOSENSOR    true
 #define HAS_ONLINEWEATHER   true
+#define HAS_USWEATHER   true
+#define TEST_CLOCK    false
 
 #if HAS_RTC
   #include "RTClib.h"
-#endif
+  #endif
 
 #if HAS_SOUNDDETECTOR
   #include <arduinoFFT.h>				// Don't forget to change CPU Frequency to 240MHz in Arduino board settings
   #include <driver/i2s.h>
-#endif
+  #endif
 
 #if HAS_BUZZER
 //  #include "../lib/Sounds/Sounds.h"
   #include <NonBlockingRtttl.h> 
-#endif
+  #endif
 
 #define USE_LITTLEFS    true
 #define USE_SPIFFS      false
@@ -55,7 +57,7 @@
   FS* filesystem =      &FFat;
   #define FileFS        FFat
   #define FS_Name       "FFat"
-#endif
+  #endif
 
 #define FORMAT_SPIFFS_IF_FAILED false
 #define STRINGIFY_HELPER(x) #x
@@ -67,7 +69,7 @@
 #define SPECTRUM_PIXELS 37    // 7 digits = 37 (5 unshared segments for every digit (7) and 2 more on the last from the side)
 #define LED_PIN 16             // led control pin
 #define MILLI_AMPS 2400 
-#define LEDS_PER_SEGMENT  4   // can be 1 to 10 LEDS per segment (7 per instructions)
+//#define LEDS_PER_SEGMENT  7   // can be 1 to 10 LEDS per segment (7 per instructions)
 #define LEDS_PER_DIGIT (LEDS_PER_SEGMENT * SEGMENTS_PER_NUMBER)
 #define FAKE_NUM_LEDS (NUMBER_OF_DIGITS * LEDS_PER_DIGIT)
 #define PHOTO_SAMPLES 10      //number of samples to take from the photoresister
@@ -78,11 +80,17 @@
 #define WiFi_MAX_RETRIES 100
 #define WiFi_MAX_RETRY_DURATION 600000 // 10 minutes in milliseconds
 
+#if TEST_CLOCK
+  #define LEDS_PER_SEGMENT  4
+#else
+  #define LEDS_PER_SEGMENT  7
+#endif
+
 #if HAS_DHT
   #include "DHT.h"
   #define DHTTYPE DHT11         // DHT 11 tempsensor
   #define DHT_PIN 33             // DHT sensor pin
-#endif
+  #endif
 #if HAS_SOUNDDETECTOR
   #define SOUNDDETECTOR_I2S_WS 23             
   #define SOUNDDETECTOR_I2S_SD 32             
@@ -94,13 +102,13 @@
   #define SOUNDDETECTOR_BANDS_WIDTH       8            // To change this, you will need to change the bunch of if statements describing the mapping from bins to bands
   #define SOUNDDETECTOR_BANDS_HEIGHT            (LEDS_PER_SEGMENT * 2)                // Don't allow the bars to go offscreen
   const int ANALYZER_SIZE = SOUNDDETECTOR_BANDS_WIDTH * LEDS_PER_SEGMENT * 2;
-#endif
+  #endif
 #if HAS_BUZZER
   #define BUZZER_PIN 17             // peizo speaker
-#endif
+  #endif
 #if HAS_PHOTOSENSOR
   #define PHOTORESISTER_PIN 36             // select the analog input pin for the photoresistor
-#endif
+  #endif
 #define digit0 seg(0), seg(1), seg(2), seg(3), seg(4), seg(5), seg(6)
 #define fdigit1 seg(2), seg(7), seg(10), seg(15), seg(8), seg(3), seg(9)
 #define digit2 seg(10), seg(11), seg(12), seg(13), seg(14), seg(15), seg(16)
@@ -141,7 +149,7 @@
  #define nseg(n) n*LEDS_PER_SEGMENT+9, n*LEDS_PER_SEGMENT+8, n*LEDS_PER_SEGMENT+7, n*LEDS_PER_SEGMENT+6, n*LEDS_PER_SEGMENT+5, n*LEDS_PER_SEGMENT+4, n*LEDS_PER_SEGMENT+3, n*LEDS_PER_SEGMENT+2, n*LEDS_PER_SEGMENT+1, n*LEDS_PER_SEGMENT
 #else
  #error "Not supported Leds per segment. You need to add definition of seg(n) with needed number of elements according to formula above"
-#endif
+  #endif
 
 
 #if HAS_SOUNDDETECTOR
@@ -224,7 +232,7 @@
   int SOUNDDETECTOR_pre_react = 0; // NEW SPIKE CONVERSION
   int SOUNDDETECTOR_react = 0; // NUMBER OF LEDs BEING LIT
   int SOUNDDETECTOR_post_react = 0; // OLD SPIKE CONVERSION
-#endif
+  #endif
 
 String softwareVersion = "version-2.0.0-alpha";
 const char* host = "shelfclock";
@@ -238,7 +246,7 @@ const char* ntpServer = "pool.ntp.org";
   int totalSongs = 0;
   const size_t songTaskbufferSize = 128;  // Adjust the buffer size as per your requirements
   char songTaskbuffer[songTaskbufferSize];
-#endif
+  #endif
 unsigned long WiFi_startTime = 0;
 unsigned long WiFi_elapsedTime = 0;
 int WiFi_retryCount = 0;
@@ -255,7 +263,7 @@ int isAsleep = 0;
   int lightSensorValue = 255;
   static long  brightnessSum   = 0;
   static bool  brightnessInited = false;
-#endif
+  #endif
 int previousTimeMin = 0;
 int previousTimeHour = 0;
 int previousTimeDay = 0;
@@ -291,26 +299,32 @@ int getSlower = 180;
 int daysUptime = 0;
 int hoursUptime = 0;
 int minutesUptime = 0;
-bool humidity_outdoor_enable = 0;
-bool temperature_outdoor_enable = 0;
-float outdoorTemp = -500;
-float outdoorHumidity = -1;
-float tideHeight[48];   // Stores hourly tide heights 
-char textTides[128] = "H 00:00 0.0 ft L 00:00 0.0 ft H 00:00 0.0 ft L 00:00 0.0 ft";    // Stores high/low tide information as a formatted string
-#define SID_SIZE 8
-char stationID[SID_SIZE] = "9434939"; // Default station ID, can be modified by the user   https://tidesandcurrents.noaa.gov/map/index.html
-uint32_t tideColor[14];   // Stores RGB colors for each hour based on tide height
-bool dailyPollSuccess = false; //did the tide poll work?
-int dailyPollFailed = 0;
-#if HAS_ONLINEWEATHER
+#if HAS_ONLINEWEATHER || HAS_USWEATHER
+  #define LAT_SIZE 15
+  #define LON_SIZE 15
+  #define API_SIZE 50
+  char latitude[LAT_SIZE] = "44.197368602";    // Default value if needed  44.197368602
+  char longitude[LON_SIZE] = "-124.112932602";// Default value if needed  -122.782794
+  bool humidity_outdoor_enable = 0;
+  bool temperature_outdoor_enable = 0;
+  float outdoorTemp = -500;
+  float outdoorHumidity = -1;
+  #endif
+#if HAS_USWEATHER
   int rainForecast[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Global array to store rain forecast data
-    #define LAT_SIZE 15
-    #define LON_SIZE 15
-    #define API_SIZE 50
-    char latitude[LAT_SIZE] = "44.197368602";    // Default value if needed
-    char longitude[LON_SIZE] = "-124.112932602";
+  float noaaTemp = 0.0f;
+  float noaaHumidity = 0.0f;
+  float tideHeight[48];   // Stores hourly tide heights 
+  char textTides[128] = "H 00:00 0.0 ft L 00:00 0.0 ft H 00:00 0.0 ft L 00:00 0.0 ft";    // Stores high/low tide information as a formatted string
+  #define SID_SIZE 8
+  char stationID[SID_SIZE] = "9434939"; // Default station ID, can be modified by the user 9434939  https://tidesandcurrents.noaa.gov/map/index.html
+  uint32_t tideColor[14];   // Stores RGB colors for each hour based on tide height
+  bool dailyPollSuccess = false; //did the tide poll work?
+  int dailyPollFailed = 0;
+  #endif
+#if HAS_ONLINEWEATHER
     char apikey[API_SIZE] = "";
-#endif
+  #endif
 #if HAS_BUZZER
   bool useAudibleAlarm = 0;
   char defaultAudibleAlarm[100] = "Final Countdown";
@@ -318,7 +332,7 @@ int dailyPollFailed = 0;
   DynamicJsonDocument listOfSong(8192);
   char songsArray[64][64];
   char filesArray[64][64];
-#endif
+  #endif
 
 bool updateSettingsRequired = 0;
 
@@ -620,7 +634,6 @@ void setup() {
   allTest();
   }
   fakeClock(2);  // blink 12:00 like old clocks once did
-
   #if HAS_SOUNDDETECTOR
     sampling_period_us = round(1000000 * (1.0 / SOUNDDETECTOR_SAMPLING_FREQ));
   #endif
@@ -893,8 +906,8 @@ void setup() {
 
   //Webpage Handlers for FileFS access to flash
   server.serveStatic("/", FileFS, "/index.html");  //send default webpage from root request
-  server.serveStatic("/", FileFS, "/", "max-age=86400");
-  // server.serveStatic("/", FileFS, "/", "no-cache, max-age=0"); //for debugging
+  //server.serveStatic("/", FileFS, "/", "max-age=86400");
+   server.serveStatic("/", FileFS, "/", "no-cache, max-age=0"); //for debugging
 
   //OTA firmware Upgrade Webpage Handlers
   Serial.println("OTA Available");
@@ -969,7 +982,7 @@ void setup() {
 
 void Task1code(void * parameter) {
   unsigned long lastTime = 0;
-  unsigned long weatherTimerDelay = 600000;  //600000 = 10 min
+  const unsigned long weatherTimerDelay = 30UL * 60UL * 1000UL;  // 30 min
   getRemoteWeather();
   while(true) {
     #if HAS_BUZZER
@@ -989,6 +1002,12 @@ void Task1code(void * parameter) {
 }
 
 void getRemoteWeather() {
+  #if HAS_USWEATHER
+    getNoaaWeather();
+    outdoorTemp = noaaTemp;
+    outdoorHumidity = noaaHumidity;
+    #endif
+
   #if HAS_ONLINEWEATHER
     if (WiFi.status() == WL_CONNECTED && apikey && latitude && longitude) {
       HTTPClient http;
@@ -1010,8 +1029,10 @@ void getRemoteWeather() {
       }
       // Free resources
       http.end();
+      Serial.printf("OpenWeatherMap.org → Temp: %f°F, Humidity: %f%%\n", outdoorTemp, outdoorHumidity);
   }
   #endif
+  
 }
 
 void loop(){
@@ -1457,28 +1478,28 @@ void displayTemperatureMode() {   //miain temp function
     float sensorTemp = 0;     // fake temperature
     float correctedTemp = sensorTemp;
   #endif
-
-  if (temperature_outdoor_enable == true) {   //if outdoor temp show both outdoor and indoor
-    if (countFlip > 5) {
-      if (temperatureSymbol != 39) {  
-        correctedTemp = ((outdoorTemp - 32) / 1.8); 
-      } else {
-        correctedTemp = outdoorTemp;
-       }
-    }
-    if (countFlip > 9) {
-      #if !HAS_DHT   //if outdoor temp and no DHT
+  #if HAS_USWEATHER || HAS_ONLINEWEATHER
+    if (temperature_outdoor_enable == true) {   //if outdoor temp show both outdoor and indoor
+      if (countFlip > 10) {
         if (temperatureSymbol != 39) {  
           correctedTemp = ((outdoorTemp - 32) / 1.8); 
         } else {
           correctedTemp = outdoorTemp;
         }
-      #endif
-      countFlip = 0;
+      }
+      if (countFlip > 20) {
+        #if !HAS_DHT   //if outdoor temp and no DHT
+          if (temperatureSymbol != 39) {  
+            correctedTemp = ((outdoorTemp - 32) / 1.8); 
+          } else {
+            correctedTemp = outdoorTemp;
+          }
+        #endif
+        countFlip = 0;
+      }
+      countFlip++;
     }
-    countFlip++;
-  }
-
+    #endif
   byte t1 = 0;
   byte t2 = 0;
   int tempDecimal = correctedTemp * 10;
@@ -1578,20 +1599,20 @@ void displayHumidityMode() {   //main humidity function
     float sensorHumi = 00.00;        // fake humidity
     float t = 00.00;     // fake temperature
   #endif
-
-  if (humidity_outdoor_enable == true) {  //if outdoor humid also show dht
-    if (countFlip > 5) {
-      sensorHumi = outdoorHumidity;
-    }
-    if (countFlip > 9) {  //no dht just show dht
-      #if !HAS_DHT
+  #if HAS_USWEATHER || HAS_ONLINEWEATHER
+    if (humidity_outdoor_enable == true) {  //if outdoor humid also show dht
+      if (countFlip > 10) {
         sensorHumi = outdoorHumidity;
-      #endif
-      countFlip = 0;
+      }
+      if (countFlip > 20) {  //no dht just show dht
+        #if !HAS_DHT
+          sensorHumi = outdoorHumidity;
+        #endif
+        countFlip = 0;
+      }
+      countFlip++;
     }
-    countFlip++;
-  }
-
+    #endif
   byte t1 = 0;
   byte t2 = 0;
   int humiDecimal = sensorHumi * 10;
@@ -1695,16 +1716,21 @@ void displayScrollMode(){   //scrollmode for displaying clock things not just te
     sprintf(strTime, "%.2d%.2d    ", hour, mins);  //1111
     sprintf(strDate, "%.2d-%.2d    ", mont, mday);  //10-22
     sprintf(strYear, "%d    ", year);  //2021
-    if (temperature_outdoor_enable == true && outdoorTemp != -500) {
-      sprintf(strTemp, "%.1f : %.1f^F     ", correctedTemp, outdoorTemp);
-    } else {
+    #if HAS_USWEATHER || HAS_ONLINEWEATHER
+      if (temperature_outdoor_enable == true && outdoorTemp != -500) {
+        sprintf(strTemp, "%.1f : %.1f^F     ", correctedTemp, outdoorTemp);
+      } else {
+        sprintf(strTemp, "%.1f^F    ", correctedTemp );  //98_6 ^F
+      }
+      if (humidity_outdoor_enable == true && outdoorHumidity != -1) {
+        sprintf(strHumitidy, "%.0f : %.0fH    ", h, outdoorHumidity);  //48_6 H
+      } else {
+        sprintf(strHumitidy, "%.0fH    ", h);  //48_6 H
+      }
+      #else
       sprintf(strTemp, "%.1f^F    ", correctedTemp );  //98_6 ^F
-    }
-    if (humidity_outdoor_enable == true && outdoorHumidity != -1) {
-      sprintf(strHumitidy, "%.0f : %.0fH    ", h, outdoorHumidity);  //48_6 H
-    } else {
       sprintf(strHumitidy, "%.0fH    ", h);  //48_6 H
-    }
+      #endif
     sprintf(strIPaddy, "%s", WiFi.localIP().toString().c_str());  //192_168_0_10
     String processedText;
     processedText.reserve(512);      // pre-allocates to avoid reallocs
@@ -1715,7 +1741,9 @@ void displayScrollMode(){   //scrollmode for displaying clock things not just te
     if (scrollOptions4) processedText += String(strYear)        + "  ";
     if (scrollOptions5) processedText += String(strTemp)        + "  ";
     if (scrollOptions6) processedText += String(strHumitidy)    + "  ";
-    if (scrollOptions9) processedText += String(textTides)      + "  ";
+    #if HAS_USWEATHER
+      if (scrollOptions9) processedText += String(textTides)      + "  ";
+      #endif
     if (scrollOptions7) processedText += scrollText             + "    ";
     if (scrollOptions8) processedText += String(strIPaddy)      + "  ";
     // if none selected, fall back to user scrollText
@@ -2367,7 +2395,7 @@ CRGB colorWheel2(int pos) {   //color wheel for things not the spectrum analyzer
 }
 
 void scroll(String IncomingString) {    //main scrolling function
-  Serial.println(IncomingString);
+  Serial.println("Scroll Text: " + IncomingString);
   breakOutSet = 0;
   scrollColor = CRGB(scrollColorValue);
   if (IncomingString.length() > 512 ) { IncomingString = "ArE U A HAckEr"; }   //too big?
@@ -2599,7 +2627,7 @@ void GetBrightnessLevel() {
 
 
   void updateRainForecast() {
-    #if HAS_ONLINEWEATHER
+    #if HAS_USWEATHER
   
     // — find last Monday —
     time_t now = time(NULL);
@@ -2678,28 +2706,93 @@ void GetBrightnessLevel() {
                     i, probs[i].as<int>(), rainForecast[i]);
     }
     
-  /* remmed out for test clock
-  // --- Adjust the order of the Shelf LED array to match your wiring ---
-  // Required order: 0,1,2,3,4,5,6,13,12,11,10,9,8,7.
-  uint32_t temprainForecast[14];
-  // Copy the first 7 entries unchanged.
-  for (int i = 0; i < 7; i++) {
-    temprainForecast[i] = rainForecast[i];
-  }
-  // Reverse the order for indices 7 to 13.
-  for (int i = 7; i < 14; i++) {
-    temprainForecast[i] = rainForecast[13 - (i - 7)];
-  }
+  // --- Adjust the order of the LED array to match your wiring ---
+  // Required order: 13,12,11,10,9,8,7,0,1,2,3,4,5,6
+  uint32_t tempHolder[14];
+  static const uint8_t idxMap[14] = {
+      7,8,9,10,11,12,13,   // new[0..6]
+      6, 5, 4, 3, 2,1,0    // new[7..13]
+  };
   for (int i = 0; i < 14; i++) {
-    rainForecast[i] = temprainForecast[i];
+      tempHolder[i] = rainForecast[idxMap[i]];
   }
-*/
+  memcpy(rainForecast, tempHolder, sizeof(tempHolder));
+
+    #endif
+  }
+  
+
+  void getNoaaWeather() {
+    #if HAS_USWEATHER
+    // 1) build the DWML XML URL
+    float latF = atof(latitude);
+    float lonF = atof(longitude);
+    String url = String("https://forecast.weather.gov/MapClick.php") + "?lat=" + String(latF, 3) + "&lon=" + String(lonF, 3) + "&unit=0&lg=english&FcstType=dwml";
+    Serial.println(url);
+    // 2) start the request
+    HTTPClient http;
+    http.begin(url);
+    http.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+      "AppleWebKit/537.36 (KHTML, like Gecko) "
+      "Chrome/115.0.0.0 Safari/537.36"
+    );
+  //  http.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" );
+  //  http.addHeader("Accept-Language", "en-US,en;q=0.9");
+    http.addHeader("Referer",      "https://forecast.weather.gov/");
+    int code = http.GET();
+    if (code != HTTP_CODE_OK) {
+      Serial.printf("HTTP GET failed: %d\n", code);
+      noaaTemp     = 0.0f;
+      noaaHumidity = 0.0f;
+      http.end();
+      return;
+    }
+    // 3) stream-parse the XML
+    WiFiClient* in = http.getStreamPtr();
+    char buf[12];
+    // — parse current “apparent” temperature —
+    const char* tMarker = "<temperature type=\"apparent\"";
+    if ( in->find(tMarker) && in->find("<value>") ) {
+      size_t i = 0;
+      while (in->available() && i < sizeof(buf)-1) {
+        char c = in->read();
+        if (c == '<') break;
+        buf[i++] = c;
+      }
+      buf[i] = '\0';
+      noaaTemp = atof(buf);
+    } else {
+      Serial.println("temp element not found");
+      noaaTemp = 0.0f;
+    }
+    // — parse current “relative” humidity —
+    const char* hMarker = "<humidity type=\"relative\"";
+    if ( in->find(hMarker) && in->find("<value>") ) {
+      size_t i = 0;
+      while (in->available() && i < sizeof(buf)-1) {
+        char c = in->read();
+        if (c == '<') break;
+        buf[i++] = c;
+      }
+      buf[i] = '\0';
+      noaaHumidity = atof(buf);
+    } else {
+      Serial.println("humidity element not found");
+      noaaHumidity = 0.0f;
+    }
+    // 4) report and clean up
+    Serial.printf("NOAA → Temp: %.1f°F, Humidity: %.1f%%\n", noaaTemp, noaaHumidity);
+    http.end();
     #endif
   }
   
 
 
+
+
   void fetchTides() {
+    #if HAS_USWEATHER
     HTTPClient http;
     bool hourlyOk   = false;
     bool highLowOk  = false;
@@ -2727,6 +2820,14 @@ void GetBrightnessLevel() {
     Serial.println(url48);
   
     http.begin(url48);
+    http.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+      "AppleWebKit/537.36 (KHTML, like Gecko) "
+      "Chrome/115.0.0.0 Safari/537.36"
+    );
+    http.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" );
+    http.addHeader("Accept-Language", "en-US,en;q=0.9");
+    http.addHeader("Referer",      "https://tidesandcurrents.noaa.gov/");
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
       // allocate on heap
@@ -2752,6 +2853,14 @@ void GetBrightnessLevel() {
     Serial.println(hiloURL);
   
     http.begin(hiloURL);
+    http.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+      "AppleWebKit/537.36 (KHTML, like Gecko) "
+      "Chrome/115.0.0.0 Safari/537.36"
+    );
+    http.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" );
+    http.addHeader("Accept-Language", "en-US,en;q=0.9");
+    http.addHeader("Referer",      "https://tidesandcurrents.noaa.gov/");
     httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
       DynamicJsonDocument doc2(2048);
@@ -2794,9 +2903,11 @@ void GetBrightnessLevel() {
       for (int i = 0; i < 14; i++) tideColor[i] = 0;
       dailyPollFailed++;
     }
+    #endif
   }
 
 void processCurrentTide() {
+  #if HAS_USWEATHER
   // If the daily poll previously failed, try to poll again (up to a limited number of retries).
   if (!dailyPollSuccess && dailyPollFailed < 3) {
     Serial.println("Daily poll failed last time. Retrying poll...");
@@ -2846,22 +2957,25 @@ void processCurrentTide() {
   }
 
  
-  /* blocked for test clock
+
   // --- Adjust the order of the LED array to match your wiring ---
-  // Required order: 0,1,2,3,4,5,6,13,12,11,10,9,8,7.
-  uint32_t tempColors[14];
-  // Copy the first 7 entries unchanged.
-  for (int i = 0; i < 7; i++) {
-    tempColors[i] = tideColor[i];
-  }
-  // Reverse the order for indices 7 to 13.
-  for (int i = 7; i < 14; i++) {
-    tempColors[i] = tideColor[13 - (i - 7)];
-  }
+  uint32_t tempHolder[14];
+  #if TEST_CLOCK
+    static const uint8_t idxMap[14] = {
+      0, 1, 2, 3, 4, 5, 6,   // new[0..6]
+      7, 8, 9, 10, 11, 12, 13    // new[7..13]
+    };
+  #else
+    static const uint8_t idxMap[14] = {
+      7,8,9,10,11,12,13,   // new[0..6] for real clock if you start at bottom right and go left and up then right clockwise around the clock
+      6, 5, 4, 3, 2,1,0    // new[7..13] modifiy to fit however you've wired the shelflights
+    };
+  #endif
   for (int i = 0; i < 14; i++) {
-    tideColor[i] = tempColors[i];
+      tempHolder[i] = tideColor[idxMap[i]];
   }
-  */
+  memcpy(tideColor, tempHolder, sizeof(tempHolder));
+  
 
   // Debug: Print the 14-hour LED mapping.
   Serial.println("\n14-Hour LED Display Mapping:");
@@ -2870,7 +2984,7 @@ void processCurrentTide() {
     Serial.printf("LED %02d (Hour %02d): Tide: %.2f ft -> Color: #%06X\n",
                   i, hourIdx, tideHeight[hourIdx], tideColor[i]);
   }
-
+#endif
 }
 
 
@@ -3009,10 +3123,10 @@ int currentHour  = timeinfo.tm_hour;
               LEDs[j].fadeToBlackBy(1);
               }
          }
-        #if HAS_ONLINEWEATHER
+        #if HAS_USWEATHER
           if (spotlightsColorSettings == 5 ){ LEDs[i] = CRGB(0, 0, rainForecast[i-SEGMENTS_LEDS]); }// Use rainForecast for the current and next week
-        #endif
-        if (spotlightsColorSettings == 6 ){ LEDs[i] = tideColor[(i-SEGMENTS_LEDS)]; } // Use tideColor for the current hour and next 13 hours
+          if (spotlightsColorSettings == 6 ){ LEDs[i] = tideColor[(i-SEGMENTS_LEDS)]; } // Use tideColor for the current hour and next 13 hours
+          #endif
     }
     colorWheelPositionTwo = colorWheelPositionTwo - 1; // SPEED OF 2nd COLOR WHEEL
     if (colorWheelPositionTwo < 0) {colorWheelPositionTwo = 255;} // RESET 2nd COLOR WHEEL 
@@ -3973,27 +4087,27 @@ void processSchedules(bool alarmType) {
 
    if (scheduleType == 3)  {   //3 = Special Date schedule type
      if (mont == month && mday == day) {
-          Serial.println("special alarm");
+         // Serial.println("special alarm");
           //fix in future, play song
+        #if HAS_BUZZER
+          if (!jsonObj["song"].isNull()) {
+              strcpy(specialAudibleAlarm, jsonObj["song"]);
+          //  Serial.println(defaultAudibleAlarm);
+          //  Serial.println(specialAudibleAlarm);
+        }
+        #endif
         if (hour == 12 && mins == 0) {
-            #if HAS_BUZZER
-              playRTTTLsong(listOfSong[song], 1);
-            #endif
+          #if HAS_BUZZER
+            playRTTTLsong(listOfSong[song], 1);
+          #endif
           if (!breakOutSet) {scroll(title);}
           allBlank(); 
         } 
-            #if HAS_BUZZER
-        if (!jsonObj["song"].isNull()) {
-            strcpy(specialAudibleAlarm, jsonObj["song"]);
-          Serial.println(defaultAudibleAlarm);
-          Serial.println(specialAudibleAlarm);
-        }
-            #endif
      } else {
             #if HAS_BUZZER
-          sprintf(specialAudibleAlarm, "%s", defaultAudibleAlarm);
+              sprintf(specialAudibleAlarm, "%s", defaultAudibleAlarm);
             #endif
-     }
+            }  
    }  //end of Special Date schedule type
 
    if (scheduleType == 4)  {   //4 = New Years schedule type
@@ -4219,11 +4333,13 @@ void getclockSettings(String fileType) {
   scrollOptions9 = jsonObj["scrollOptions9"].as<bool>();
   scrollOverride = jsonObj["scrollOverride"].as<bool>();
   scrollText = jsonObj["scrollText"].as<String>();
-  const char* sidStr = jsonObj["stationID"].as<const char*>();
-  if (sidStr) {
-    strncpy(stationID, sidStr, sizeof(stationID) - 1);
-    stationID[sizeof(stationID) - 1] = '\0';
-  }
+  #if HAS_USWEATHER
+    const char* sidStr = jsonObj["stationID"].as<const char*>();
+    if (sidStr) {
+      strncpy(stationID, sidStr, sizeof(stationID) - 1);
+      stationID[sizeof(stationID) - 1] = '\0';
+    }
+    #endif
   spectrumBackgroundSettings = jsonObj["spectrumBackgroundSettings"].as<byte>();
   spectrumColorSettings = jsonObj["spectrumColorSettings"].as<byte>();
   spectrumMode = jsonObj["spectrumMode"].as<int>();
@@ -4239,6 +4355,13 @@ void getclockSettings(String fileType) {
   #endif
   useSpotlights = jsonObj["useSpotlights"].as<bool>();
   #if HAS_ONLINEWEATHER
+      const char* keyStr = jsonObj["apikey"].as<const char*>();
+    if (keyStr) {
+      strncpy(apikey, keyStr, sizeof(apikey) - 1);
+      apikey[sizeof(apikey) - 1] = '\0';
+    }
+    #endif
+    #if HAS_ONLINEWEATHER || HAS_USWEATHER
     humidity_outdoor_enable = jsonObj["humidity_outdoor_enable"].as<bool>();
     temperature_outdoor_enable = jsonObj["temperature_outdoor_enable"].as<bool>();
     const char* latStr = jsonObj["latitude"].as<const char*>();
@@ -4251,12 +4374,7 @@ void getclockSettings(String fileType) {
       strncpy(longitude, lonStr, sizeof(longitude) - 1);
       longitude[sizeof(longitude) - 1] = '\0';
     }
-      const char* keyStr = jsonObj["apikey"].as<const char*>();
-    if (keyStr) {
-      strncpy(apikey, keyStr, sizeof(apikey) - 1);
-      apikey[sizeof(apikey) - 1] = '\0';
-    }
-  #endif
+    #endif
   // Close the file.
   file.close();
 }  
@@ -4354,7 +4472,9 @@ void saveclockSettings(String fileType) {
   clockSettings["colonType"] = colonType;
   clockSettings["ColorChangeFrequency"] = ColorChangeFrequency;
   clockSettings["scrollText"] = scrollText;
-  clockSettings["stationID"] = stationID;
+  #if HAS_USWEATHER
+    clockSettings["stationID"] = stationID;
+    #endif
   clockSettings["clockDisplayType"] = clockDisplayType;
   clockSettings["dateDisplayType"] = dateDisplayType;
   clockSettings["colorchangeCD"] = colorchangeCD;
@@ -4385,12 +4505,14 @@ void saveclockSettings(String fileType) {
   clockSettings["suspendFrequency"] = suspendFrequency;
   clockSettings["suspendType"] = suspendType;
   #if HAS_ONLINEWEATHER
+    clockSettings["apikey"] = apikey;
+    #endif
+    #if HAS_ONLINEWEATHER || HAS_USWEATHER
     clockSettings["humidity_outdoor_enable"] = humidity_outdoor_enable;
     clockSettings["temperature_outdoor_enable"] = temperature_outdoor_enable;
     clockSettings["latitude"] = latitude;
     clockSettings["longitude"] = longitude;
-    clockSettings["apikey"] = apikey;
-  #endif
+    #endif
 
 // 3) write it out
 File file = FileFS.open(oldName, FILE_WRITE);
@@ -4424,6 +4546,7 @@ void loadWebPageHandlers() {
     json["HAS_BUZZER"] = HAS_BUZZER;
     json["HAS_PHOTOSENSOR"] = HAS_PHOTOSENSOR;
     json["HAS_ONLINEWEATHER"] = HAS_ONLINEWEATHER;
+    json["HAS_USWEATHER"] = HAS_USWEATHER;
     serializeJson(json, output);
     server.send(200, "application/json", output);
   });
@@ -4493,23 +4616,28 @@ void loadWebPageHandlers() {
     json["scrollOptions8"] = scrollOptions8;
     json["scrollOptions9"] = scrollOptions9;
     json["scrollText"] = scrollText;
-    json["stationID"] = stationID;
     json["scrollOverride"] = scrollOverride;
     json["scrollColor"] = scrollColorValue;
     json["scrollColorSettings"] = scrollColorSettings;
     #if HAS_ONLINEWEATHER
+      json["weatherapi"]["apikey"] = apikey;
+      #endif
+      #if HAS_USWEATHER
+      json["stationID"] = stationID;
+      #endif
+      #if HAS_ONLINEWEATHER || HAS_USWEATHER
       json["weatherapi"]["latitude"] = latitude;
       json["weatherapi"]["longitude"] = longitude;
-      json["weatherapi"]["apikey"] = apikey;
+      json["humidity_outdoor_enable"] = humidity_outdoor_enable;
+      json["temperature_outdoor_enable"] = temperature_outdoor_enable;
     #endif
-    json["humidity_outdoor_enable"] = humidity_outdoor_enable;
-    json["temperature_outdoor_enable"] = temperature_outdoor_enable;
     json["HAS_DHT"] = HAS_DHT;
     json["HAS_RTC"] = HAS_RTC;
     json["HAS_SOUNDDETECTOR"] = HAS_SOUNDDETECTOR;
     json["HAS_BUZZER"] = HAS_BUZZER;
     json["HAS_PHOTOSENSOR"] = HAS_PHOTOSENSOR;
     json["HAS_ONLINEWEATHER"] = HAS_ONLINEWEATHER;
+    json["HAS_USWEATHER"] = HAS_USWEATHER;
   #if HAS_BUZZER
     json["listOfSong"] = listOfSong;
   #endif
@@ -4982,17 +5110,17 @@ void loadWebPageHandlers() {
         updateSettingsRequired = 1;
         if (clockMode == 11) { allBlank(); } 
       }
-
-      // stationID
-      if (!json["stationID"].isNull()) {
-        const char* temp = json["stationID"].as<const char*>();
-        strncpy(stationID, temp, SID_SIZE - 1);
-        stationID[SID_SIZE - 1] = '\0';
-        updateSettingsRequired = 1;
-        fetchTides(); 
-        processCurrentTide();
-      }
-
+      #if HAS_USWEATHER
+        // stationID
+        if (!json["stationID"].isNull()) {
+          const char* temp = json["stationID"].as<const char*>();
+          strncpy(stationID, temp, SID_SIZE - 1);
+          stationID[SID_SIZE - 1] = '\0';
+          updateSettingsRequired = 1;
+          fetchTides(); 
+          processCurrentTide();
+        }
+        #endif
       // setpreset1
       if (!json["setpreset1"].isNull()) {
          saveclockSettings("preset1");
@@ -5149,7 +5277,7 @@ void loadWebPageHandlers() {
       }
   #endif
 
-  #if HAS_ONLINEWEATHER
+  #if HAS_ONLINEWEATHER || HAS_USWEATHER
     if (!json["weatherapi"].isNull()) {
       if (!json["weatherapi"]["latitude"].isNull()) {
         const char* temp = json["weatherapi"]["latitude"].as<const char*>();
@@ -5161,35 +5289,40 @@ void loadWebPageHandlers() {
         strncpy(longitude, temp, LON_SIZE - 1);
         longitude[LON_SIZE - 1] = '\0';
       }
+        Serial.println(latitude);
+        Serial.println(longitude);
+        updateSettingsRequired = 1;
+    }
+    // humidity
+    if (!json["humidity_outdoor_enable"].isNull()) {
+      if (!json["humidity_outdoor_enable"].isNull()) humidity_outdoor_enable = json["humidity_outdoor_enable"];
+      if ( json["humidity_outdoor_enable"] == true) {humidity_outdoor_enable = 1;}
+      if ( json["humidity_outdoor_enable"] == false) {humidity_outdoor_enable = 0;}
+    Serial.println(humidity_outdoor_enable);
+      updateSettingsRequired = 1;
+    }
+
+    // temperature
+    if (!json["temperature_outdoor_enable"].isNull()) {
+      if (!json["temperature_outdoor_enable"].isNull()) temperature_outdoor_enable = json["temperature_outdoor_enable"];
+      if ( json["temperature_outdoor_enable"] == true) {temperature_outdoor_enable = 1;}
+      if ( json["temperature_outdoor_enable"] == false) {temperature_outdoor_enable = 0;}
+    Serial.println(temperature_outdoor_enable);
+      updateSettingsRequired = 1;
+    }
+  #endif
+  #if HAS_ONLINEWEATHER
+    if (!json["weatherapi"].isNull()) {
       if (!json["weatherapi"]["apikey"].isNull()) {
         const char* temp = json["weatherapi"]["apikey"].as<const char*>();
         strncpy(apikey, temp, API_SIZE - 1);
         apikey[API_SIZE - 1] = '\0';
       }
-        Serial.println(latitude);
-        Serial.println(longitude);
         Serial.println(apikey);
         updateSettingsRequired = 1;
     }
   #endif
 
-      // humidity
-      if (!json["humidity_outdoor_enable"].isNull()) {
-        if (!json["humidity_outdoor_enable"].isNull()) humidity_outdoor_enable = json["humidity_outdoor_enable"];
-        if ( json["humidity_outdoor_enable"] == true) {humidity_outdoor_enable = 1;}
-        if ( json["humidity_outdoor_enable"] == false) {humidity_outdoor_enable = 0;}
-      Serial.println(humidity_outdoor_enable);
-        updateSettingsRequired = 1;
-      }
-
-      // temperature
-      if (!json["temperature_outdoor_enable"].isNull()) {
-        if (!json["temperature_outdoor_enable"].isNull()) temperature_outdoor_enable = json["temperature_outdoor_enable"];
-        if ( json["temperature_outdoor_enable"] == true) {temperature_outdoor_enable = 1;}
-        if ( json["temperature_outdoor_enable"] == false) {temperature_outdoor_enable = 0;}
-      Serial.println(temperature_outdoor_enable);
-        updateSettingsRequired = 1;
-      }
 
       server.send(200, "text/json", "{\"result\":\"ok\"}");
     } 
@@ -5325,6 +5458,7 @@ void loadWebPageHandlers() {
     json["HAS_BUZZER"] = HAS_BUZZER;
     json["HAS_PHOTOSENSOR"] = HAS_PHOTOSENSOR;
     json["HAS_ONLINEWEATHER"] = HAS_ONLINEWEATHER;
+    json["HAS_USWEATHER"] = HAS_USWEATHER;
     #if HAS_SOUNDDETECTOR
       json["ANALYZER_SIZE"] = ANALYZER_SIZE;
     #endif	
@@ -5441,8 +5575,10 @@ void loadWebPageHandlers() {
     json["currentMode"] = currentMode;
     json["currentReal"] = currentReal;
     json["cylonPosition"] = cylonPosition;
-    json["dailyPollSuccess"] = dailyPollSuccess;
-    json["dailyPollFailed"] = dailyPollFailed;
+    #if HAS_USWEATHER
+      json["dailyPollSuccess"] = dailyPollSuccess;
+      json["dailyPollFailed"] = dailyPollFailed;
+      #endif
     json["dateDisplayType"] = dateDisplayType;
     json["daylightOffset_sec"] = daylightOffset_sec;
     json["daysUptime"] = daysUptime;
@@ -5464,10 +5600,9 @@ void loadWebPageHandlers() {
     for (int i = 0; i < SPECTRUM_PIXELS; i++) { greenMatrixArray.add(greenMatrix[i]); }
     json["host"] = host;
     json["hoursUptime"] = hoursUptime;
-    #if HAS_ONLINEWEATHER || HAS_DHT
+    #if HAS_ONLINEWEATHER || HAS_DHT || HAS_USWEATHER
       json["humiColorSettings"] = humiColorSettings;
       json["humiDisplayType"] = humiDisplayType;
-      json["humidity_outdoor_enable"] = humidity_outdoor_enable;
     #endif
     json["isAsleep"] = isAsleep;
     #if HAS_PHOTOSENSOR
@@ -5482,9 +5617,7 @@ void loadWebPageHandlers() {
       JsonArray oldBarHeightsArray = json.createNestedArray("oldBarHeights");
       for (unsigned int i = 0; i < sizeof(oldBarHeights) / sizeof(oldBarHeights[0]); i++) { oldBarHeightsArray.add(oldBarHeights[i]); }
     #endif	
-    #if HAS_ONLINEWEATHER
-      json["outdoorTemp"] = outdoorTemp;
-      json["outdoorHumidity"] = outdoorHumidity;
+    #if HAS_USWEATHER
       JsonArray tideHeightArray = json.createNestedArray("tideHeight");
       for (int i = 0; i < 48; i++) { tideHeightArray.add(String(tideHeight[i], 1)); }
       JsonArray tideColorArray = json.createNestedArray("tideColor");
@@ -5493,7 +5626,16 @@ void loadWebPageHandlers() {
         sprintf(hexColor, "%06X", tideColor[i]);
         tideColorArray.add(hexColor);
       }
-    #endif
+      json["noaaTemp"] = noaaTemp;
+      json["noaaHumidity"] = noaaHumidity;
+      JsonArray rainForecastArray = json.createNestedArray("rainForecast");
+      for (int i = 0; i < 14; i++) { rainForecastArray.add(rainForecast[i]); }
+      #endif
+    #if HAS_ONLINEWEATHER || HAS_USWEATHER
+      json["outdoorTemp"] = outdoorTemp;
+      json["outdoorHumidity"] = outdoorHumidity;
+      json["humidity_outdoor_enable"] = humidity_outdoor_enable;
+      #endif
     json["pastelColors"] = pastelColors;
     #if HAS_PHOTOSENSOR
       JsonArray photoresisterReadingsArray = json.createNestedArray("photoresisterReadings");
@@ -5508,10 +5650,6 @@ void loadWebPageHandlers() {
     json["previousTimeWeek"] = previousTimeWeek;
     JsonArray rainArray = json.createNestedArray("rain");
     for (int i = 0; i < SPECTRUM_PIXELS; i++) { rainArray.add(rain[i]); }
-    #if HAS_ONLINEWEATHER
-      JsonArray rainForecastArray = json.createNestedArray("rainForecast");
-      for (int i = 0; i < 14; i++) { rainForecastArray.add(rainForecast[i]); }
-    #endif
     json["randomDayPassed"] = randomDayPassed;
     json["randomHourPassed"] = randomHourPassed;
     json["randomMinPassed"] = randomMinPassed;
@@ -5562,17 +5700,20 @@ void loadWebPageHandlers() {
       json["spectrumMode"] = spectrumMode;
     #endif
     json["spotlightsColorSettings"] = spotlightsColorSettings;
-    json["stationID"] = stationID; 
+    #if HAS_USWEATHER
+      json["stationID"] = stationID; 
+      #endif
     json["suspendFrequency"] = suspendFrequency;
     json["suspendType"] = suspendType;
     #if HAS_ONLINEWEATHER || HAS_DHT
       json["tempColorSettings"] = tempColorSettings;
       json["tempDisplayType"] = tempDisplayType;
       json["temperatureCorrection"] = temperatureCorrection;
-      json["temperature_outdoor_enable"] = temperature_outdoor_enable;
       json["temperatureSymbol"] = temperatureSymbol;
     #endif
-    json["textTides"] = textTides;
+    #if HAS_USWEATHER
+      json["textTides"] = textTides;
+      #endif
     #if HAS_BUZZER
       json["totalSongs"] = totalSongs;
     #endif	
@@ -5590,9 +5731,12 @@ void loadWebPageHandlers() {
       for (unsigned int i = 0; i < sizeof(valid_beats) / sizeof(valid_beats[0]); i++) { validBeats.add(valid_beats[i]); }
     #endif	
     #if HAS_ONLINEWEATHER
+      json["apikey"] = apikey;
+    #endif	
+    #if HAS_ONLINEWEATHER || HAS_USWEATHER
       json["latitude"] = latitude;
       json["longitude"] = longitude;
-      json["apikey"] = apikey;
+      json["temperature_outdoor_enable"] = temperature_outdoor_enable;
     #endif	
       json["countdownColorValue"] = countdownColorValue;
       json["spectrumColorValue"] = spectrumColorValue;
