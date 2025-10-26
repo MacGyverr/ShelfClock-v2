@@ -4424,14 +4424,26 @@ void saveclockSettings(String fileType) {
           fileType.c_str(), random(0, 65535));
   sprintf(oldName, "/settings/clockSettings-%s.json", fileType.c_str());
 
-  Serial.println("Saving to " + String(newName));
+  // Ensure settings directory exists (prevents creation errors on fresh FS)
+  {
+    File dir = FileFS.open("/settings");
+    if (!dir || !dir.isDirectory()) {
+      FileFS.mkdir("/settings");
+    }
+    if (dir) dir.close();
+  }
 
-  // 1) try renaming current → backup
-  if (!FileFS.rename(oldName, newName)) {
-    Serial.println("Rename failed (low space?), cleaning old backups…");
-    cleanupOldSettings(fileType);
-    // retry once
-    FileFS.rename(oldName, newName);
+  // If an existing preset file is present, back it up first; otherwise skip rename to avoid errors
+  if (FileFS.exists(oldName)) {
+    Serial.println("Backing up existing to " + String(newName));
+    if (!FileFS.rename(oldName, newName)) {
+      Serial.println("Rename failed (low space?), cleaning old backups…");
+      cleanupOldSettings(fileType);
+      // retry once
+      FileFS.rename(oldName, newName);
+    }
+  } else {
+    Serial.println("No existing preset, creating new: " + String(oldName));
   }
 
   // 2) serialize your JSON into a heap doc
@@ -5856,4 +5868,3 @@ server.on("/uploadSong", HTTP_POST, []() {
 #endif
 
 }
-
