@@ -1,4 +1,5 @@
-const { Api, SettingsStore } = window;
+(function (global) {
+const { Api, SettingsStore } = global;
 const radioButtons = {
     'pastelColors': 'pastelColors',
     'suspendType': 'suspendType',
@@ -725,3 +726,4 @@ async function uploadFile() {
         return { error: 1, message: error.message };
     }
 }
+})(window);
