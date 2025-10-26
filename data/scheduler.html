@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <script type="text/javascript" src="js/jquery.min.js"></script>	
+  <script type="text/javascript" src="js/jquery.min.js"></script>
   <link rel="stylesheet" href="css/main.css">
-  <script type="text/javascript" src="js/main.js"></script>	
+  <script type="text/javascript" src="js/api.js"></script>
+  <script type="text/javascript" src="js/settings-store.js"></script>
+  <script type="text/javascript" src="js/main.js"></script>
   <title>Shelf Clock</title>
 </head>
 <script type="text/javascript">
+        const schedulerApi = window.Api;
 //	const url = "";
 	var jsonScheduleList;   // Declare jsonScheduleList as a global variable
 		var selectedKey;
@@ -20,37 +23,40 @@
 		var year = date.getFullYear();
 		if (month < 10) month = "0" + month;
 		if (day < 10) day = "0" + day;
-		function handleFormSubmit(event) {
-		  event.preventDefault();
-		  const data = new FormData(event.target);
-		  const formJSON = Object.fromEntries(data.entries());
-		  const formJSON2 = Object.fromEntries(data.entries());
-		  const results = document.querySelector('.results pre');
-			if (formJSON.mon == null) {formJSON.mon = "0";} else {formJSON.mon = "1";}
-			if (formJSON.tue == null) {formJSON.tue = "0";} else {formJSON.tue = "1";}
-			if (formJSON.wed == null) {formJSON.wed = "0";} else {formJSON.wed = "1";}
-			if (formJSON.thu == null) {formJSON.thu = "0";} else {formJSON.thu = "1";}
-			if (formJSON.fri == null) {formJSON.fri = "0";} else {formJSON.fri = "1";}
-			if (formJSON.sat == null) {formJSON.sat = "0";} else {formJSON.sat = "1";}
-			if (formJSON.sun == null) {formJSON.sun = "0";} else {formJSON.sun = "1";}
-			if (formJSON.dailyType == null) {formJSON.dailyType = "9";}
-			if (formJSON.hourlyType == null) {formJSON.hourlyType = "99";}
-			if (formJSON.gongmode == null) {formJSON.gongmode = "0";} else {formJSON.gongmode = "1";}
-			if (formJSON.daymode == null) {formJSON.daymode = "0";} else {formJSON.daymode = "1";}
-			if (formJSON.date == "") {formJSON.year = "9999"; formJSON.month = "00"; formJSON.day = "00";} else {formJSON.year = formJSON.date[0] + formJSON.date[1] + formJSON.date[2] + formJSON.date[3]; formJSON.month = formJSON.date[5] + formJSON.date[6]; formJSON.day = formJSON.date[8] + formJSON.date[9];}
-			if (formJSON.recurring == null) {formJSON.recurring = "0";} else {formJSON.recurring = "1";}
-			if (formJSON.scheduleType == "3") {formJSON.year = "9999";}
-			if (formJSON.scheduleType == "4") {formJSON.year = "9999"; formJSON.title="Happy New Year"; formJSON.song="Auld Lang Syne"; formJSON.hours="00"; formJSON.minutes="00"; formJSON.month="01"; formJSON.day="01";}
-			let uuid = formJSON.mon + formJSON.tue + formJSON.wed + formJSON.thu + formJSON.fri + formJSON.sat + formJSON.sun + formJSON.hours + formJSON.minutes + formJSON.gongmode + formJSON.daymode + formJSON.dom + formJSON.year + formJSON.month + formJSON.day;
-			formJSON.uid = uuid;
-			if (formJSON.title == "") {formJSON.title = uuid;}
-			console.log(JSON.stringify(formJSON, null, 2));
-			fetch(`${url}/scheduler`, {
-				method: 'POST',
-				body: JSON.stringify(formJSON)
-				});     
-			location.reload();	
-		}
+                async function handleFormSubmit(event) {
+                  event.preventDefault();
+                  const data = new FormData(event.target);
+                  const formJSON = Object.fromEntries(data.entries());
+                  const formJSON2 = Object.fromEntries(data.entries());
+                  const results = document.querySelector('.results pre');
+                        if (formJSON.mon == null) {formJSON.mon = "0";} else {formJSON.mon = "1";}
+                        if (formJSON.tue == null) {formJSON.tue = "0";} else {formJSON.tue = "1";}
+                        if (formJSON.wed == null) {formJSON.wed = "0";} else {formJSON.wed = "1";}
+                        if (formJSON.thu == null) {formJSON.thu = "0";} else {formJSON.thu = "1";}
+                        if (formJSON.fri == null) {formJSON.fri = "0";} else {formJSON.fri = "1";}
+                        if (formJSON.sat == null) {formJSON.sat = "0";} else {formJSON.sat = "1";}
+                        if (formJSON.sun == null) {formJSON.sun = "0";} else {formJSON.sun = "1";}
+                        if (formJSON.dailyType == null) {formJSON.dailyType = "9";}
+                        if (formJSON.hourlyType == null) {formJSON.hourlyType = "99";}
+                        if (formJSON.gongmode == null) {formJSON.gongmode = "0";} else {formJSON.gongmode = "1";}
+                        if (formJSON.daymode == null) {formJSON.daymode = "0";} else {formJSON.daymode = "1";}
+                        if (formJSON.date == "") {formJSON.year = "9999"; formJSON.month = "00"; formJSON.day = "00";} else {formJSON.year = formJSON.date[0] + formJSON.date[1] + formJSON.date[2] + formJSON.date[3]; formJSON.month = formJSON.date[5] + formJSON.date[6]; formJSON.day = formJSON.date[8] + formJSON.date[9];}
+                        if (formJSON.recurring == null) {formJSON.recurring = "0";} else {formJSON.recurring = "1";}
+                        if (formJSON.scheduleType == "3") {formJSON.year = "9999";}
+                        if (formJSON.scheduleType == "4") {formJSON.year = "9999"; formJSON.title="Happy New Year"; formJSON.song="Auld Lang Syne"; formJSON.hours="00"; formJSON.minutes="00"; formJSON.month="01"; formJSON.day="01";}
+                        let uuid = formJSON.mon + formJSON.tue + formJSON.wed + formJSON.thu + formJSON.fri + formJSON.sat + formJSON.sun + formJSON.hours + formJSON.minutes + formJSON.gongmode + formJSON.daymode + formJSON.dom + formJSON.year + formJSON.month + formJSON.day;
+                        formJSON.uid = uuid;
+                        if (formJSON.title == "") {formJSON.title = uuid;}
+                        console.log(JSON.stringify(formJSON, null, 2));
+                        try {
+                                await schedulerApi.postScheduler(formJSON);
+                        } catch (error) {
+                                console.error('Failed to save schedule', error);
+                                alert('Failed to save schedule');
+                                return;
+                        }
+                        location.reload();
+                }
 
 		const form = document.querySelector('.contact-form');
 		form.addEventListener('submit', handleFormSubmit);
@@ -184,12 +190,12 @@
 	}
 
 	// Function to send the selected object to another link
-	function sendSelectedObject() {
-		var radioButtons = document.getElementsByName("selectedObject");
-		for (var i = 0; i < radioButtons.length; i++) {
-			if (radioButtons[i].checked) {
-				selectedKey = radioButtons[i].value;
-				break; // Exit the loop after finding the selected key
+        async function sendSelectedObject() {
+                var radioButtons = document.getElementsByName("selectedObject");
+                for (var i = 0; i < radioButtons.length; i++) {
+                        if (radioButtons[i].checked) {
+                                selectedKey = radioButtons[i].value;
+                                break; // Exit the loop after finding the selected key
 			}
 		}
 
@@ -200,67 +206,67 @@
 		//    var url = "another_page.html?data=" + encodeURIComponent(firstKeyValue);
 		//    window.location.href = url;
 		
-			var deleteStuff = '{"deleteData":"' + encodeURIComponent(selectedValue) + '"}';	
-	console.log(deleteStuff);
-					 fetch(`${url}/schedulerDelete`, {
-				method: 'POST',
-				body: deleteStuff
-			}); 
-		}
-		location.reload();
-	}
+                        var deleteStuff = encodeURIComponent(selectedValue);
+        console.log(deleteStuff);
+                        try {
+                                await schedulerApi.deleteScheduler(deleteStuff);
+                        } catch (error) {
+                                console.error('Failed to delete schedule', error);
+                                alert('Failed to delete schedule');
+                                return;
+                        }
+                }
+                location.reload();
+        }
 
 	// Function to fetch the JSON data from the server
-	function fetchJSONData() {
-		// Make an asynchronous request to fetch the JSON data
-		fetch(`${url}/getscheduler`)
-			.then(response => response.json())
-			.then(data => {
-				console.log("JSON data:", data);
-				// Extract the JSON array from the received data
-				jsonScheduleList = data.jsonScheduleData;
-				HAS_BUZZER = data.HAS_BUZZER;
-				// Populate the object list with the JSON array
-				populateObjectList();
-				// Populate the song list with the JSON array
-		if (!HAS_BUZZER) { 
-			var div = document.getElementById("BUZZER");
-			div.style.display = 'none';
+        async function fetchJSONData() {
+                try {
+                        const data = await schedulerApi.getScheduler();
+                        console.log("JSON data:", data);
+                        // Extract the JSON array from the received data
+                        jsonScheduleList = data.jsonScheduleData;
+                        HAS_BUZZER = data.HAS_BUZZER;
+                        // Populate the object list with the JSON array
+                        populateObjectList();
+                        // Populate the song list with the JSON array
+                        if (!HAS_BUZZER) {
+                                var div = document.getElementById("BUZZER");
+                                div.style.display = 'none';
 
-			var childElements = div.getElementsByTagName('*');
-			for (var i = 0; i < childElements.length; i++) {
-			childElements[i].style.display = 'none';
-			}
-			var div2 = document.getElementById("BUZZER2");
-			div2.style.display = 'none';
+                                var childElements = div.getElementsByTagName('*');
+                                for (var i = 0; i < childElements.length; i++) {
+                                childElements[i].style.display = 'none';
+                                }
+                                var div2 = document.getElementById("BUZZER2");
+                                div2.style.display = 'none';
 
-			var childElements = div2.getElementsByTagName('*');
-			for (var i = 0; i < childElements.length; i++) {
-			childElements[i].style.display = 'none';
-			console.log(i);
-			}
-		} //hide buzzer if no sounddetector hardware				
-						else {
-				let add = document.querySelector("[name='song']");
-				for (let [key, value] of Object.entries(data.listOfSong)) {
-					let element = document.createElement("option");
-					element.value = key;
-					element.innerHTML = key;
-					add.appendChild(element);
-				}		
-				let add2 = document.querySelector("[name='displaysong']");
-				for (let [key, value] of Object.entries(data.listOfSong)) {
-					let element = document.createElement("option");
-					element.value = key;
-					element.innerHTML = key;
-					add2.appendChild(element);
-				}	
-}				
-			})
-			.catch(error => {
-				console.log("Error fetching JSON data:", error);
-			});
-	}
+                                var childElements = div2.getElementsByTagName('*');
+                                for (var i = 0; i < childElements.length; i++) {
+                                childElements[i].style.display = 'none';
+                                console.log(i);
+                                }
+                        } //hide buzzer if no sounddetector hardware
+                                                else {
+                                let add = document.querySelector("[name='song']");
+                                for (let [key, value] of Object.entries(data.listOfSong)) {
+                                        let element = document.createElement("option");
+                                        element.value = key;
+                                        element.innerHTML = key;
+                                        add.appendChild(element);
+                                }
+                                let add2 = document.querySelector("[name='displaysong']");
+                                for (let [key, value] of Object.entries(data.listOfSong)) {
+                                        let element = document.createElement("option");
+                                        element.value = key;
+                                        element.innerHTML = key;
+                                        add2.appendChild(element);
+                                }
+                        }
+                } catch (error) {
+                        console.log("Error fetching JSON data:", error);
+                }
+        }
 
 function populateForm() {
   // Get the selected object index from the select element
@@ -325,13 +331,18 @@ function populateForm() {
 }
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('playthesong').addEventListener('click', async event => {
-        let body = {};
-        body['song'] = document.querySelector("[name='song']").value;
-        await fetch(`${url}/playsong`, {
-          method: 'POST',
-          body: JSON.stringify(body)
-        });
+      const playButton = document.getElementById('playthesong');
+      if (!playButton) {
+        return;
+      }
+      playButton.addEventListener('click', async () => {
+        try {
+          const song = document.querySelector("[name='song']").value;
+          await schedulerApi.playSong(song);
+        } catch (error) {
+          console.error('Failed to play song', error);
+          alert('Failed to play song');
+        }
       });
     });
 

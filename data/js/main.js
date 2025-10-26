@@ -1,4 +1,4 @@
-const url = "";
+const { Api, SettingsStore } = window;
 const radioButtons = {
     'pastelColors': 'pastelColors',
     'suspendType': 'suspendType',
@@ -85,10 +85,11 @@ document.addEventListener('DOMContentLoaded', function () {
         element.addEventListener('click', async event => {
             let body = {};
             body[event.target.dataset.param] = true;
-            await fetch(`${url}/updateanything`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
+            try {
+                await Api.postUpdate(body);
+            } catch (error) {
+                console.error('Failed to update parameter button', error);
+            }
         });
     })
 
@@ -103,10 +104,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 let body = {
                     spectrumMode: event.target.dataset.showspectrum
                 }
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });
+                try {
+                    await Api.postUpdate(body);
+                } catch (error) {
+                    console.error('Failed to update spectrum mode', error);
+                }
             });
         });
 
@@ -115,10 +117,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 let body = {
                     lightshowMode: event.target.dataset.lightshow
                 }
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });
+                try {
+                    await Api.postUpdate(body);
+                } catch (error) {
+                    console.error('Failed to update lightshow mode', error);
+                }
             });
         });
         
@@ -131,10 +134,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 let seconds = document.querySelector("[name='seconds']").value;
                 var ms = (hours * 60 * 60 * 1000) + (minutes * 60 * 1000) + (seconds * 1000);
                 body[post] = ms;
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });
+                try {
+                    await Api.postUpdate(body);
+                } catch (error) {
+                    console.error('Failed to update timer mode', error);
+                }
             });
         });
 
@@ -146,10 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         'right': document.querySelector("input[name='right']").value
                     }
                 };
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });           
+                try {
+                    await Api.postUpdate(body);
+                } catch (error) {
+                    console.error('Failed to update scoreboard values', error);
+                }
             })
         });
 
@@ -175,196 +180,200 @@ document.addEventListener('DOMContentLoaded', function () {
     /* SETTINGS STUFF */
     if (document.querySelectorAll("form[name='shelfclock-settings']").length > 0) {
 
-        /* get all */
-     //   loadSettings();
-     (async () => {
-        const settings = await loadSettings();
-        // now do whatever you need with settings…
-
-        for (let [key, value] of Object.entries({...radioButtons, ...dropDownSelectors, ...{'rangeBrightness': 'rangeBrightness'}})) {
-            document.querySelectorAll(`[name='${value}`).forEach((element) => {
-                element.addEventListener("change", async function(event) {
-                    let body = {};
-                    body[key] = event.target.value;
-                    await fetch(`${url}/updateanything`, {
-                        method: 'POST',
-                        body: JSON.stringify(body)
-                    });
-                });
-            });
-        }
-
-        for (let [key, value] of Object.entries(directValueSelectors)) {
-            if (key === 'rangeBrightness') continue;
-            const debounced = debounce(async function (event) {
-                let body = {};
-                const val = event.target.value;
-                if (key === 'scrollText' || key === 'stationID') {
-                    body[key] = val;
-                }
-                else if (event.target.type === 'color') {
-                   // strip the '#' and send as integer
-                    body[key] = parseInt(val.slice(1), 16);
-                }
-                else {
-                    body[key] = val;
-                }
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });
-            }, 500); // half a second debounce so we don't flood the server with requests. 
-            const el = document.querySelector(`[name='${value}']`);
-            el && el.addEventListener("input", debounced);
-        }
-
-        for (let [key, value] of Object.entries({...checkboxSelectors})) {
-            document.querySelector(`[name='${value}']`).addEventListener("change", async function (event) {
-                let body = {};
-                body[key] = event.target.checked;
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
-                });
-            });
-        }
-
-        document.querySelector("[name='setdatetime']").addEventListener('click', async (event) => {
-            let date = new Date();
-            let body = {};
-            body['setdate'] = {
-                year: date.getFullYear(),
-                month: date.getMonth() + 1,
-                day: date.getDate(),
-                hour: date.getHours(),
-                min: date.getMinutes(),
-                sec: date.getSeconds()
-            };
-            await fetch(`${url}/updateanything`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-        });
-
-        /* datetime */
-        let datetime = document.querySelectorAll(".datetime");
-        if (datetime.length > 0) {
-            window.setInterval(() => {
-                let date = new Date()
-                datetime.forEach((element) => {
-                    element.innerHTML = date.toLocaleDateString('en-us', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                    });
-                    element.innerHTML += " ";
-                    element.innerHTML += date.toLocaleTimeString('en-us', {
-                        hour12: false
-                    })
-                });
-            }, 1000);
-        }
-
-        /* test api */
-        document.querySelector("button[name='weatherapi_save']").addEventListener('click', async event => {
-            let msgElement = document.querySelector(".weatherapi_save");
-            msgElement.classList.remove('error');
-            msgElement.innerHTML = "";
-
-            let apikey = document.querySelector("input[name='weatherapi_apikey']").value;
-            if (apikey.trim().length === 0) {
-                msgElement.classList.add('error');
-                msgElement.innerHTML = "Missing Api Key";
-                return;
-            }
-            
-            let lat = document.querySelector("input[name='weatherapi_latitude']").value;
-            if (lat.trim().length === 0) {
-                msgElement.classList.add('error');
-                msgElement.innerHTML = "Missing Latitude (Press Get Location Button)";
+        (async () => {
+            try {
+                await loadSettings();
+            } catch (error) {
+                console.error('Failed to initialise settings', error);
                 return;
             }
 
-            let long = document.querySelector("input[name='weatherapi_longitude']").value;
-            if (long.trim().length === 0) {
-                msgElement.classList.add('error');
-                msgElement.innerHTML = "Missing Longitude (Press Get Location Button)";
-                return;
-            }
-
-            let units = (document.querySelector("input[name='temperatureSymbol']:checked").value === "36") ? "metric" : "imperial";
-            let unit = (units === "metric") ? "C" : "F";
-            let apiUrl = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&APPID=${apikey}&units=${units}`;
-            msgElement.innerHTML = "Fetching temp...";
-            let response = await fetch(apiUrl);
-            if (response.ok) {
-                let data = await response.json();
-                msgElement.innerHTML = `${data['main']['temp']}&deg;${unit} and ${data['main']['humidity']}% humidity`;
-                
-                let body = {
-                    weatherapi: {
-                        'apikey': apikey,
-                        'latitude': lat,
-                        'longitude': long
+            const attachUpdate = (key, element, eventName = 'change') => {
+                if (!element) {
+                    return;
+                }
+                element.addEventListener(eventName, async event => {
+                    try {
+                        await SettingsStore.updateFromInput(key, event.target);
+                    } catch (err) {
+                        console.error(`Failed to update setting ${key}`, err);
                     }
-                }
-                await fetch(`${url}/updateanything`, {
-                    method: 'POST',
-                    body: JSON.stringify(body)
                 });
+            };
 
-                msgElement.innerHTML += " Saved!!!";
+            for (let [key, value] of Object.entries(radioButtons)) {
+                document.querySelectorAll(`input[name='${value}']`).forEach(element => {
+                    attachUpdate(key, element, 'change');
+                });
+            }
 
+            for (let [key, value] of Object.entries(dropDownSelectors)) {
+                document.querySelectorAll(`select[name='${value}']`).forEach(element => {
+                    attachUpdate(key, element, 'change');
+                });
+            }
+
+            for (let [key, value] of Object.entries(directValueSelectors)) {
+                const element = document.querySelector(`[name='${value}']`);
+                if (!element) continue;
+                const handler = debounce(async event => {
+                    try {
+                        await SettingsStore.updateFromInput(key, event.target);
+                    } catch (err) {
+                        console.error(`Failed to update setting ${key}`, err);
+                    }
+                }, 500);
+                const eventName = element.type === 'color' ? 'change' : 'input';
+                element.addEventListener(eventName, handler);
+            }
+
+            for (let [key, value] of Object.entries(checkboxSelectors)) {
+                const element = document.querySelector(`[name='${value}']`);
+                attachUpdate(key, element, 'change');
+            }
+
+            const datetimeButton = document.querySelector("[name='setdatetime']");
+            if (datetimeButton) {
+                datetimeButton.addEventListener('click', async () => {
+                    let date = new Date();
+                    let body = {
+                        setdate: {
+                            year: date.getFullYear(),
+                            month: date.getMonth() + 1,
+                            day: date.getDate(),
+                            hour: date.getHours(),
+                            min: date.getMinutes(),
+                            sec: date.getSeconds()
+                        }
+                    };
+                    try {
+                        await Api.postUpdate(body);
+                    } catch (error) {
+                        console.error('Failed to set date/time', error);
+                    }
+                });
+            }
+
+            /* datetime */
+            let datetime = document.querySelectorAll(".datetime");
+            if (datetime.length > 0) {
+                window.setInterval(() => {
+                    let date = new Date()
+                    datetime.forEach((element) => {
+                        element.innerHTML = date.toLocaleDateString('en-us', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        });
+                        element.innerHTML += " ";
+                        element.innerHTML += date.toLocaleTimeString('en-us', {
+                            hour12: false
+                        })
+                    });
+                }, 1000);
+            }
+
+            /* test api */
+            document.querySelector("button[name='weatherapi_save']").addEventListener('click', async event => {
+                let msgElement = document.querySelector(".weatherapi_save");
+                msgElement.classList.remove('error');
+                msgElement.innerHTML = "";
+
+                let apikey = document.querySelector("input[name='weatherapi_apikey']").value;
+                if (apikey.trim().length === 0) {
+                    msgElement.classList.add('error');
+                    msgElement.innerHTML = "Missing Api Key";
+                    return;
+                }
+
+                let lat = document.querySelector("input[name='weatherapi_latitude']").value;
+                if (lat.trim().length === 0) {
+                    msgElement.classList.add('error');
+                    msgElement.innerHTML = "Missing Latitude (Press Get Location Button)";
+                    return;
+                }
+
+                let long = document.querySelector("input[name='weatherapi_longitude']").value;
+                if (long.trim().length === 0) {
+                    msgElement.classList.add('error');
+                    msgElement.innerHTML = "Missing Longitude (Press Get Location Button)";
+                    return;
+                }
+
+                let units = (document.querySelector("input[name='temperatureSymbol']:checked").value === "36") ? "metric" : "imperial";
+                let unit = (units === "metric") ? "C" : "F";
+                let apiUrl = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&APPID=${apikey}&units=${units}`;
+                msgElement.innerHTML = "Fetching temp...";
+                let response = await fetch(apiUrl);
+                if (response.ok) {
+                    let data = await response.json();
+                    msgElement.innerHTML = `${data['main']['temp']}&deg;${unit} and ${data['main']['humidity']}% humidity`;
+
+                    try {
+                        await SettingsStore.updateNested('weatherapi', {
+                            apikey,
+                            latitude: lat,
+                            longitude: long
+                        });
+                        localStorage.setItem("weatherapi", JSON.stringify({ apikey, latitude: lat, longitude: long }));
+                    } catch (error) {
+                        console.error('Failed to save weather API settings', error);
+                        msgElement.classList.add('error');
+                        msgElement.innerHTML = 'Failed to save settings';
+                        return;
+                    }
+
+                    msgElement.innerHTML += " Saved!!!";
+
+                    document.querySelectorAll("[name='temperature_outdoor_enable'], [name='humidity_outdoor_enable']").forEach(element => {
+                        element.removeAttribute('disabled');
+                    });
+                    document.querySelectorAll(".weathercheckbox").forEach(element => {
+                        element.setAttribute('hidden', true);
+                    });
+
+                } else {
+                    let error = await response.json();
+                    msgElement.innerHTML = error.message;
+                    msgElement.classList.add('error');
+                    console.error(response);
+                }
+            });
+
+            document.querySelector("[name='clearapikey']").addEventListener('click', async event => {
+                try {
+                    await SettingsStore.updateNested('weatherapi', {
+                        apikey: '',
+                        latitude: '',
+                        longitude: ''
+                    });
+                } catch (error) {
+                    console.error('Failed to clear weather API settings', error);
+                }
+
+                localStorage.removeItem("weatherapi");
+                document.querySelector("input[name='weatherapi_apikey']").value = '';
                 document.querySelectorAll("[name='temperature_outdoor_enable'], [name='humidity_outdoor_enable']").forEach(element => {
-                    element.removeAttribute('disabled');
+                    element.setAttribute('disabled', true);
                 });
                 document.querySelectorAll(".weathercheckbox").forEach(element => {
-                    element.setAttribute('hidden', true);
+                    element.removeAttribute('hidden');
                 });
+            })
 
-            } else {
-                let error = await response.json();
-                msgElement.innerHTML = error.message;
-                msgElement.classList.add('error');              
-                console.error(response);
-            }
-        });
 
-        document.querySelector("[name='clearapikey']").addEventListener('click', async event => {
-            let body = {
-                weatherapi: {
-                    'apikey': '',
-                    'latitude': '',
-                    'longitude': ''
+
+
+                if (localStorage.getItem("HAS_BUZZER") == "true") { //hide FFT if no sounddetector hardware
+                document.querySelector("#upload-button").addEventListener('click', async function() {
+                        let upload = await uploadFile();
+                        if(upload.error == 0) {
+                                alert('File uploaded successfully');
+                        } else if(upload.error == 1) {
+                                alert('File uploading failed - ' + upload.message);
+                        }
+                });
                 }
-            }
-            await fetch(`${url}/updateanything`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            document.querySelector("input[name='weatherapi_apikey']").value = '';
-            document.querySelectorAll("[name='temperature_outdoor_enable'], [name='humidity_outdoor_enable']").forEach(element => {
-                element.setAttribute('disabled', true);
-            });
-            document.querySelectorAll(".weathercheckbox").forEach(element => {
-                element.removeAttribute('hidden');
-            });
-        })
-
-
-
-    
-		if (localStorage.getItem("HAS_BUZZER") == "true") { //hide FFT if no sounddetector hardware     
-		document.querySelector("#upload-button").addEventListener('click', async function() {
-			let upload = await uploadFile();   
-			if(upload.error == 0) {
-				alert('File uploaded successfully');
-			} else if(upload.error == 1) {
-				alert('File uploading failed - ' + upload.message);
-			}
-		});
-		}
 
         // Check if both latitude and longitude are populated
         if (localStorage.getItem("weatherapi")) {
@@ -401,157 +410,187 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-// helper to make sure we always get a "#RRGGBB" string
-function normalizeColor(val) {
-    if (typeof val === 'string' && /^#([0-9A-Fa-f]{6})$/.test(val)) {
-      return val;
-    }
-    let n = Number(val) & 0xFFFFFF;
-    return '#' + n.toString(16).padStart(6, '0');
-  }
-
   /* load home */
   async function loadHome() {
-    // 1) get the scores + flags
-    let respHome = await fetch(`${url}/gethome`);
-    if (!respHome.ok) return;
-    let home = await respHome.json();
-  
-    document.querySelector("[name='left']").value  = home.scoreboardLeft;
-    document.querySelector("[name='right']").value = home.scoreboardRight;
-  
-    // 2) get the settings (colors, etc)
-    let respSet = await fetch(`${url}/getsettings`);
-    if (respSet.ok) {
-      let settings = await respSet.json();
-  
-      const leftHex  = normalizeColor(settings.scoreboardColorLeft);
-      const rightHex = normalizeColor(settings.scoreboardColorRight);
-      //console.log('using left:', leftHex, ' right:', rightHex);
-  
-      document.documentElement.style.setProperty('--score-left',  leftHex);
-      document.documentElement.style.setProperty('--score-right', rightHex);
-    } else {
-      console.warn('Failed to load settings for colors');
+    try {
+      const home = await Api.getHome();
+      if (!home) return;
+
+      const leftInput = document.querySelector("[name='left']");
+      const rightInput = document.querySelector("[name='right']");
+      if (leftInput) {
+        leftInput.value = home.scoreboardLeft;
+      }
+      if (rightInput) {
+        rightInput.value = home.scoreboardRight;
+      }
+
+      try {
+        await SettingsStore.load();
+        const leftHex = SettingsStore.getColor('scoreboardLeft');
+        const rightHex = SettingsStore.getColor('scoreboardRight');
+        if (leftHex) {
+          document.documentElement.style.setProperty('--score-left', leftHex);
+        }
+        if (rightHex) {
+          document.documentElement.style.setProperty('--score-right', rightHex);
+        }
+      } catch (settingsError) {
+        console.warn('Failed to load settings for colors', settingsError);
+      }
+
+      if (!home.HAS_SOUNDDETECTOR) {
+        document.getElementById("FFT").style.display = 'none';
+      }
+      if (!home.HAS_ONLINEWEATHER && !home.HAS_DHT) {
+        document.getElementById("NOTEMP5").style.display = 'none';
+        document.getElementById("NOTEMP6").style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Failed to load home data', error);
     }
-  
-    // 3) hide unused sections
-    if (!home.HAS_SOUNDDETECTOR) {
-      document.getElementById("FFT").style.display = 'none';
-    }
-    if (!home.HAS_ONLINEWEATHER && !home.HAS_DHT) {
-      document.getElementById("NOTEMP5").style.display = 'none';
-      document.getElementById("NOTEMP6").style.display = 'none';
-    }
-  
-    // debug logs
-    //console.log('raw home flags:', home);
   }
   
 
 /* load settings */
 async function loadSettings() {
-    let response = await fetch(`${url}/getsettings`);
-    if (response.ok) {
-        let settings = await response.json();
-		
-			//	console.log("JSON data:", settings);
-		if (!settings.HAS_SOUNDDETECTOR) { document.getElementById("FFT").style.display = 'none'; document.getElementById("FFT2").style.display = 'none'; } //hide FFT if no sounddetector hardware
-		if (!settings.HAS_BUZZER) { document.getElementById("BUZZER").style.display = 'none'; document.getElementById("BUZZER2").style.display = 'none'; } //hide buzzer if no sounddetector hardware
-		if (!settings.HAS_ONLINEWEATHER && !settings.HAS_DHT) { document.getElementById("NOTEMP").style.display = 'none';  document.getElementById("NOTEMP2").style.display = 'none'; document.getElementById("NOTEMP3").style.display = 'none'; document.getElementById("NOTEMP4").style.display = 'none'; } //hide TEMP STUFF if no sounddetector hardware
-		if (!settings.HAS_ONLINEWEATHER) { document.getElementById("NOTEMP3").style.display = 'none'; document.getElementById("NOTEMP7").style.display = 'none'; document.getElementById("NOTEMP8").style.display = 'none'; document.getElementById("NOTEMP9").style.display = 'none';} //hide TEMP STUFF if no sounddetector hardware
-		
+    try {
+        const settings = await SettingsStore.load();
+        if (!settings) {
+            return null;
+        }
+
+        if (!settings.HAS_SOUNDDETECTOR) {
+            document.getElementById("FFT").style.display = 'none';
+            document.getElementById("FFT2").style.display = 'none';
+        }
+        if (!settings.HAS_BUZZER) {
+            document.getElementById("BUZZER").style.display = 'none';
+            document.getElementById("BUZZER2").style.display = 'none';
+            localStorage.removeItem("HAS_BUZZER");
+        }
+        if (!settings.HAS_ONLINEWEATHER && !settings.HAS_DHT) {
+            document.getElementById("NOTEMP").style.display = 'none';
+            document.getElementById("NOTEMP2").style.display = 'none';
+            document.getElementById("NOTEMP3").style.display = 'none';
+            document.getElementById("NOTEMP4").style.display = 'none';
+        }
+        if (!settings.HAS_ONLINEWEATHER) {
+            document.getElementById("NOTEMP3").style.display = 'none';
+            document.getElementById("NOTEMP7").style.display = 'none';
+            document.getElementById("NOTEMP8").style.display = 'none';
+            document.getElementById("NOTEMP9").style.display = 'none';
+        }
+
         for (let [key, value] of Object.entries(settings)) {
             if (key in radioButtons) {
                 setRadioButton(radioButtons[key], value);
             } else if (key in dropDownSelectors) {
                 setDropDown(dropDownSelectors[key], value);
             } else if (key in directValueSelectors) {
-                setValue(directValueSelectors[key], value);
+                const normalized = SettingsStore.getNormalizedValue(key);
+                setValue(directValueSelectors[key], normalized);
             } else if (key in checkboxSelectors) {
-                setCheckbox(checkboxSelectors[key], value)
+                setCheckbox(checkboxSelectors[key], value);
             } else if (key === 'weatherapi') {
-               setWeatherAPI(key, value);
-   //         } else if (key === 'temperature') {
-   //             setObjectAPI(key, value);
-   //         } else if (key === 'humidity') {
-   //             setObjectAPI(key, value);
-            } else {
-            //    console.log(`key is not found ${key}`);
+                setWeatherAPI(key, value);
+                if (value && value.apikey) {
+                    localStorage.setItem("weatherapi", JSON.stringify(value));
+                }
             }
         }
-		
-		if (!settings.HAS_BUZZER) { document.getElementById("BUZZER").style.display = 'none'; } //hide buzzer if no sounddetector hardware
-	else {
-		localStorage.setItem("HAS_BUZZER", "true");
-        let add = document.querySelector("[name='song']");
-        for (let [key, value] of Object.entries(settings.listOfSong)) {
-            let element = document.createElement("option");
-            element.value = key;
-            element.innerHTML = key;
-            add.appendChild(element);
+
+        if (!settings.weatherapi || !settings.weatherapi.apikey) {
+            localStorage.removeItem("weatherapi");
         }
 
-        document.querySelector("[name='play-song']").addEventListener('click', async event => {
-            let body = {};
-            body['song'] = document.querySelector("[name='song']").value;
-            await fetch(`${url}/playsong`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-        });
+        if (settings.HAS_BUZZER) {
+            localStorage.setItem("HAS_BUZZER", "true");
+            const songSelect = document.querySelector("[name='song']");
+            if (songSelect) {
+                songSelect.innerHTML = '';
+                for (let [key] of Object.entries(settings.listOfSong || {})) {
+                    let element = document.createElement("option");
+                    element.value = key;
+                    element.innerHTML = key;
+                    songSelect.appendChild(element);
+                }
+            }
 
-        document.querySelector("[name='delete-song']").addEventListener('click', async event => {
-            let body = {};
-            body['song'] = document.querySelector("[name='song']").value;
-            await fetch(`${url}/deleteSong`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-			location.reload();	
-        });
-	}		
-		
-		
+            const playButton = document.querySelector("[name='play-song']");
+            if (playButton) {
+                playButton.addEventListener('click', async () => {
+                    const song = document.querySelector("[name='song']").value;
+                    try {
+                        await Api.playSong(song);
+                    } catch (error) {
+                        console.error('Failed to play song', error);
+                    }
+                });
+            }
+
+            const deleteButton = document.querySelector("[name='delete-song']");
+            if (deleteButton) {
+                deleteButton.addEventListener('click', async () => {
+                    const song = document.querySelector("[name='song']").value;
+                    try {
+                        await Api.deleteSong(song);
+                        location.reload();
+                    } catch (error) {
+                        console.error('Failed to delete song', error);
+                    }
+                });
+            }
+        }
+
+        return settings;
+    } catch (error) {
+        console.error('Failed to load settings', error);
+        throw error;
     }
- //   return settings;  
 }
 
-/* load debug */
 async function loadDebug() {
-    let add = document.querySelector(".debug-items")
-    let response = await fetch(`${url}/getdebug`);
-    if (response.ok) {
-        let settings = await response.json();
+    let add = document.querySelector(".debug-items");
+    if (!add) return;
+    try {
+        const settings = await Api.getDebug();
+        if (!settings) {
+            return;
+        }
         for (let [key, value] of Object.entries(settings)) {
             let element = document.createElement("tr");
             element.innerHTML = `<td>${key}</td><td>${value}</td>`;
             add.appendChild(element);
         }
+    } catch (error) {
+        console.error('Failed to load debug information', error);
     }
 }
 
 
 /* load scheduler */
 async function loadScheduler() {
-    let response = await fetch(`${url}/getscheduler`);
-    if (response.ok) {
-        let data = await response.json();
-
-        let add = document.querySelector("[name='song']");
-        for (let [key, value] of Object.entries(data.listOfSong)) {
-            let element = document.createElement("option");
-            element.value = key;
-            element.innerHTML = key;
-            add.appendChild(element);
+    try {
+        const data = await Api.getScheduler();
+        if (!data) {
+            return;
         }
 
-  //const formJSONschedules = Object.fromEntries(data.jsonScheduleData);
-      //  document.jsonObject = data.jsonScheduleData;
+        let add = document.querySelector("[name='song']");
+        if (add) {
+            add.innerHTML = '';
+            for (let [key] of Object.entries(data.listOfSong || {})) {
+                let element = document.createElement("option");
+                element.value = key;
+                element.innerHTML = key;
+                add.appendChild(element);
+            }
+        }
 
-	
         console.log(data.jsonScheduleData);
-		
+    } catch (error) {
+        console.error('Failed to load scheduler data', error);
     }
 }
 
@@ -562,26 +601,31 @@ async function loadScheduler() {
 async function setObjectAPI(objkey, obj) {
     for (let [key, value] of Object.entries(obj)) {
         let element = document.querySelector(`[name='${objkey}_${key}']`);
+        if (!element) continue;
         console.log(objkey, obj, `[name='${objkey}_${key}']`);
         element.checked = value
         element.addEventListener('click', async event => {
-            let body = {};
-            body[objkey] = {};
-            body[objkey][key] = event.target.checked;
-
-            await fetch(`${url}/updateanything`, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
+            try {
+                await SettingsStore.updateNested(objkey, { [key]: event.target.checked });
+            } catch (error) {
+                console.error(`Failed to update ${objkey}.${key}`, error);
+            }
         });
     }
 }
 
 async function setWeatherAPI(objkey, obj) {
+    if (!obj) {
+        return;
+    }
     let enableOutdoorCheckBoxs = true;
     for (let [key, value] of Object.entries(obj)) {
-        enableOutdoorCheckBoxs &= (value.trim().length > 0);
-        document.querySelector(`[name='${objkey}_${key}']`).value = value
+        const str = value != null ? value.toString() : '';
+        enableOutdoorCheckBoxs &= (str.trim().length > 0);
+        let input = document.querySelector(`[name='${objkey}_${key}']`);
+        if (input) {
+            input.value = str;
+        }
     }
 
     if (enableOutdoorCheckBoxs) {
@@ -664,39 +708,20 @@ async function uploadFile() {
         if (fileInput.files.length === 0) {
             throw new Error('No file selected');
         }
-        
+
         const data = new FormData();
         data.append('title', 'Sample Title');
         data.append('file', fileInput.files[0]);
 
-        const response = await fetch(`${url}/uploadSong`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: data,
-            headers: {
-                'Cache-Control': 'no-cache'
-            }
-        });
-
-        if (!response.ok) { // If HTTP status is error
-            let errorMessage = 'HTTP error ' + response.status + ': ' + response.statusText;
-            try {
-                const errorResponse = await response.json(); // Try to parse the JSON error message
-                errorMessage = errorResponse.message;
-            } catch(e) {
-                console.error('Failed to parse JSON error response: ' + e.message);
-            }
-            throw new Error(errorMessage);
+        const jsonResponse = await Api.uploadSong(data);
+        if (jsonResponse && jsonResponse.error === 1) {
+            throw new Error(jsonResponse.message);
         }
 
-        const jsonResponse = await response.json(); // Parse the JSON response
-        if (jsonResponse.error === 1) {
-            throw new Error(jsonResponse.message); // Throw if server indicates an error
-        }
-
-        return { error: 0, message: jsonResponse.message }; // Return a successful result
+        const message = jsonResponse && jsonResponse.message ? jsonResponse.message : 'Upload completed';
+        return { error: 0, message };
     } catch (error) {
-        console.error(error); // Log the error for debugging
-        return { error: 1, message: error.message }; // Return a failure result
+        console.error(error);
+        return { error: 1, message: error.message };
     }
 }
