@@ -5143,6 +5143,16 @@ void loadWebPageHandlers() {
          saveclockSettings("preset2");
       }
 
+      // setpreset3
+      if (!json["setpreset3"].isNull()) {
+         saveclockSettings("preset3");
+      }
+
+      // setpreset4
+      if (!json["setpreset4"].isNull()) {
+         saveclockSettings("preset4");
+      }
+
       // setdate
       if (!json["setdate"].isNull()) {
           int yeararg = json["setdate"]["year"].as<int>();
@@ -5230,6 +5240,18 @@ void loadWebPageHandlers() {
       // loadpreset2
       if (!json["loadPreset2"].isNull()) {
         getclockSettings("preset2");    
+        allBlank();  
+      }
+
+      // loadpreset3
+      if (!json["loadPreset3"].isNull()) {
+        getclockSettings("preset3");  
+        allBlank(); 
+      }
+
+      // loadpreset4
+      if (!json["loadPreset4"].isNull()) {
+        getclockSettings("preset4");    
         allBlank();  
       }
 
