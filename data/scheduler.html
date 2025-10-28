@@ -42,6 +42,7 @@
                         if (formJSON.daymode == null) {formJSON.daymode = "0";} else {formJSON.daymode = "1";}
                         if (formJSON.date == "") {formJSON.year = "9999"; formJSON.month = "00"; formJSON.day = "00";} else {formJSON.year = formJSON.date[0] + formJSON.date[1] + formJSON.date[2] + formJSON.date[3]; formJSON.month = formJSON.date[5] + formJSON.date[6]; formJSON.day = formJSON.date[8] + formJSON.date[9];}
                         if (formJSON.recurring == null) {formJSON.recurring = "0";} else {formJSON.recurring = "1";}
+                        if (formJSON.preset == null) {formJSON.preset = "0";}
                         if (formJSON.scheduleType == "3") {formJSON.year = "9999";}
                         if (formJSON.scheduleType == "4") {formJSON.year = "9999"; formJSON.title="Happy New Year"; formJSON.song="Auld Lang Syne"; formJSON.hours="00"; formJSON.minutes="00"; formJSON.month="01"; formJSON.day="01";}
                         // Normalize to fixed-width strings
@@ -66,6 +67,7 @@
                                 'dailyType', 'hourlyType',
                                 'date',
                                 'song', 'title',
+                                'preset',
                                 'uid'
                         ];
                         const payload = {};
@@ -101,38 +103,38 @@
 			$("select").each(function() { this.selectedIndex = 0 });
 			$("input[type=date]").val("");
 			var q01 = $('input[name=scheduleType]');
-			if ($(q01).is(':checked')&& this.value==0 ) { //Daily
-				$('.showDaily, .showDailysub, .showSong, .showTitle, .showSave').show();
-				$('.showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring').hide();
+				if ($(q01).is(':checked')&& this.value==0 ) { //Daily
+					$('.showDaily, .showDailysub, .showSong, .showPreset, .showTitle, .showSave').show();
+					$('.showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false);
 			} else if ($(q01).is(':checked')&& this.value==1 ) {  //Monthly
-				$('.showHour, .showMinutes, .showMonthly, .showSong, .showTitle, .showSave').show();
+					$('.showHour, .showMinutes, .showMonthly, .showSong, .showPreset, .showTitle, .showSave').show();
 				$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showDate, .showRecurring').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false); 
 			} else if ($(q01).is(':checked')&& this.value==2 ) {  //Date
-				$('.showHour, .showMinutes, .showDate, .showRecurring, .showSong, .showTitle, .showSave').show();
+					$('.showHour, .showMinutes, .showDate, .showRecurring, .showSong, .showPreset, .showTitle, .showSave').show();
 				$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showMonthly').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false);
 			} else if ($(q01).is(':checked')&& this.value==3 ) {  //Special Date
-				$('.showDate, .showSong, .showTitle, .showSave').show();
+					$('.showDate, .showSong, .showPreset, .showTitle, .showSave').show();
 				$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showRecurring').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false);
 			} else if ($(q01).is(':checked')&& this.value==4 ) {  //New Years
-				$('.showSave').show();
-				$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring, .showSong, .showTitle').hide();
+					$('.showSave, .showPreset').show();
+					$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring, .showSong, .showTitle').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false);
-			} else {                    //Startup
-				$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring, .showSong, .showTitle, .showSave').hide();
+				} else {                    //Startup
+					$('.showDaily, .showDailysub, .showHourly, .showDaymode, .showGong, .showHour, .showMinutes, .showMonthly, .showDate, .showRecurring, .showSong, .showPreset, .showTitle, .showSave').hide();
 				allCheckboxes.forEach(element => element.checked = false);
 				allRadioboxes.forEach(element => element.checked = false);
 				allRadioboxes2.forEach(element => element.checked = false);
@@ -321,6 +323,10 @@ function populateForm() {
 	document.querySelector('select[name="displaysong"]').value = selectedObject.song;
 	if (selectedObject.hourlyType != 99) {document.querySelector('input[name="displayhourlyType"][value="' + selectedObject.hourlyType + '"]').checked = true; console.log(selectedObject.hourlyType); } 
 	document.querySelector('input[name="displayrecurring"]').checked = selectedObject.recurring;
+	// Show preset used (defaults to 0 if missing)
+	var presetVal = (selectedObject.preset === undefined || selectedObject.preset === null || selectedObject.preset === "") ? 0 : selectedObject.preset;
+	var presetEl = document.querySelector('.displaypreset');
+	if (presetEl) { presetEl.textContent = presetVal; }
 	document.querySelector('input[name="displaygongmode"]').checked = selectedObject.gongmode;
 	document.querySelector('input[name="displaydaymode"]').checked = selectedObject.daymode;
 	if (selectedObject.scheduleType == 0 ) { //Daily
@@ -582,6 +588,16 @@ function populateForm() {
 				  </select>
 				<input type="button" value="Test" id="playthesong">
 				</div>
+				<div class="showPreset">
+				  Preset:
+				  <select name="preset">
+				    <option value="0">0 (None)</option>
+				    <option value="1">1</option>
+				    <option value="2">2</option>
+				    <option value="3">3</option>
+				    <option value="4">4</option>
+				  </select>
+				</div>
 				</div>
 				<div class="showTitle">
 				  <label for="scheduleTitle">Title:</label>
@@ -803,6 +819,9 @@ function populateForm() {
 				  <label for="scheduleTitle">Title:</label>
 				  <input type="text" id="title" name="displaytitle">
 				</div>	
+				<div class="displayPresetUsed">
+				  <span>Preset used: </span><span class="displaypreset">0</span>
+				</div>
 				
 			</div>
     </div>

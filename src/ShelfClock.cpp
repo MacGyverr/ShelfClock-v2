@@ -3906,6 +3906,7 @@ void processSchedules(bool alarmType) {
       int month = (int)jsonObj["month"];
       int day = (int)jsonObj["day"];
       int recurring = (int)jsonObj["recurring"];
+      int preset = jsonObj.containsKey("preset") ? (int)jsonObj["preset"] : 0;
       String uid = jsonObj["uid"].as<String>();
 /*
     "scheduleType": "3",
@@ -4008,6 +4009,17 @@ void processSchedules(bool alarmType) {
                 playRTTTLsong(listOfSong[song], 1);
                 }
             #endif
+            // Apply preset if specified (1..4) and file exists
+            if (preset > 0 && preset <= 4) {
+              char presetPath[64];
+              sprintf(presetPath, "/settings/clockSettings-preset%d.json", preset);
+              if (FileFS.exists(presetPath)) {
+                char presetName[16];
+                sprintf(presetName, "preset%d", preset);
+                getclockSettings(String(presetName));
+                allBlank();
+              }
+            }
            // if (!breakOutSet) {scroll(title);}
           //  allBlank();
           }
@@ -4042,7 +4054,18 @@ void processSchedules(bool alarmType) {
             #if HAS_BUZZER
               playRTTTLsong(listOfSong[song], 1);
             #endif
-              if (!breakOutSet) {scroll(title);}
+            // Apply preset if specified (1..4) and file exists
+            if (preset > 0 && preset <= 4) {
+              char presetPath[64];
+              sprintf(presetPath, "/settings/clockSettings-preset%d.json", preset);
+              if (FileFS.exists(presetPath)) {
+                char presetName[16];
+                sprintf(presetName, "preset%d", preset);
+                getclockSettings(String(presetName));
+                allBlank();
+              }
+            }
+              if (!breakOutSet) {scroll(title);} 
               allBlank(); 
       } else {
             #if HAS_BUZZER
@@ -4079,7 +4102,18 @@ void processSchedules(bool alarmType) {
             #if HAS_BUZZER
               playRTTTLsong(listOfSong[song], 1);
             #endif
-          if (!breakOutSet) {scroll(title);}
+          // Apply preset if specified (1..4) and file exists
+          if (preset > 0 && preset <= 4) {
+            char presetPath[64];
+            sprintf(presetPath, "/settings/clockSettings-preset%d.json", preset);
+            if (FileFS.exists(presetPath)) {
+              char presetName[16];
+              sprintf(presetName, "preset%d", preset);
+              getclockSettings(String(presetName));
+              allBlank();
+            }
+          }
+          if (!breakOutSet) {scroll(title);} 
           allBlank(); 
         }
    }  //end of Date schedule type
@@ -4100,7 +4134,18 @@ void processSchedules(bool alarmType) {
           #if HAS_BUZZER
             playRTTTLsong(listOfSong[song], 1);
           #endif
-          if (!breakOutSet) {scroll(title);}
+          // Apply preset if specified (1..4) and file exists
+          if (preset > 0 && preset <= 4) {
+            char presetPath[64];
+            sprintf(presetPath, "/settings/clockSettings-preset%d.json", preset);
+            if (FileFS.exists(presetPath)) {
+              char presetName[16];
+              sprintf(presetName, "preset%d", preset);
+              getclockSettings(String(presetName));
+              allBlank();
+            }
+          }
+          if (!breakOutSet) {scroll(title);} 
           allBlank(); 
         } 
      } else {
@@ -4115,7 +4160,18 @@ void processSchedules(bool alarmType) {
             #if HAS_BUZZER
               playRTTTLsong("/settings/auldlang.rttl", 1);
             #endif
-          if (!breakOutSet) {scroll(title);}
+          // Apply preset if specified (1..4) and file exists
+          if (preset > 0 && preset <= 4) {
+            char presetPath[64];
+            sprintf(presetPath, "/settings/clockSettings-preset%d.json", preset);
+            if (FileFS.exists(presetPath)) {
+              char presetName[16];
+              sprintf(presetName, "preset%d", preset);
+              getclockSettings(String(presetName));
+              allBlank();
+            }
+          }
+          if (!breakOutSet) {scroll(title);} 
           allBlank(); 
     }
    }  //end of New Years schedule type
@@ -4165,6 +4221,7 @@ void createSchedulesArray() {
       int month = jsonObj["month"];
       int day = jsonObj["day"];
       int recurring = jsonObj["recurring"];
+      int preset = jsonObj.containsKey("preset") ? (int)jsonObj["preset"] : 0;
       String uid = jsonObj["uid"];
       /* Display the values for testing
       Serial.print("scheduleType = ");
@@ -4233,6 +4290,7 @@ void createSchedulesArray() {
       fileData["month"] = month;
       fileData["day"] = day;
       fileData["recurring"] = recurring;
+      fileData["preset"] = preset;
       fileData["uid"] = uid;
     }
     file.close();
