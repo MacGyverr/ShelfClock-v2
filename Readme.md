@@ -167,6 +167,10 @@ The new firmware in the `newer-vscode-wip` branch is optimized for better config
 - **It has the ability to compile without any extra hardware modules** (no DHT or RTL or INMP441 or light sensor, no problem). Just set what you have via `#DEFINE`.
 - **Deals with the `millis()` 49-day issue**
 - **All JSON settings to and from the webpages**
+- **More settings presets
+- **Ability to assign a setting preset to a scheduled event/alarm (dim and clock at 5pm, scrolling text, bright and alarm at 9am)
+- **Display local tidal heights via shelf lights
+- **Display local rain schedules for 2 weeks in the shelf lights 
 
 The custom PCB includes labeled sections for each component:
 
