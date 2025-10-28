@@ -44,12 +44,42 @@
                         if (formJSON.recurring == null) {formJSON.recurring = "0";} else {formJSON.recurring = "1";}
                         if (formJSON.scheduleType == "3") {formJSON.year = "9999";}
                         if (formJSON.scheduleType == "4") {formJSON.year = "9999"; formJSON.title="Happy New Year"; formJSON.song="Auld Lang Syne"; formJSON.hours="00"; formJSON.minutes="00"; formJSON.month="01"; formJSON.day="01";}
-                        let uuid = formJSON.mon + formJSON.tue + formJSON.wed + formJSON.thu + formJSON.fri + formJSON.sat + formJSON.sun + formJSON.hours + formJSON.minutes + formJSON.gongmode + formJSON.daymode + formJSON.dom + formJSON.year + formJSON.month + formJSON.day;
+                        // Normalize to fixed-width strings
+                        formJSON.hours = (formJSON.hours ?? "99").toString().padStart(2,'0');
+                        formJSON.minutes = (formJSON.minutes ?? "99").toString().padStart(2,'0');
+                        formJSON.dom = (formJSON.dom ?? "00").toString().padStart(2,'0');
+                        formJSON.month = (formJSON.month ?? "00").toString().padStart(2,'0');
+                        formJSON.day = (formJSON.day ?? "00").toString().padStart(2,'0');
+                        // Build UID in the desired order
+                        let uuid = formJSON.mon + formJSON.tue + formJSON.wed + formJSON.thu + formJSON.fri + formJSON.sat + formJSON.sun + formJSON.year + formJSON.month + formJSON.day + formJSON.hours + formJSON.minutes + formJSON.gongmode + formJSON.daymode + formJSON.dom;
                         formJSON.uid = uuid;
                         if (formJSON.title == "") {formJSON.title = uuid;}
-                        console.log(JSON.stringify(formJSON, null, 2));
+                        // Build payload with keys in a specific order for saved JSON
+                        const orderedKeys = [
+                                'scheduleType',
+                                'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun',
+                                'year', 'month', 'day',
+                                'hours', 'minutes',
+                                'gongmode', 'daymode',
+                                'dom',
+                                'recurring',
+                                'dailyType', 'hourlyType',
+                                'date',
+                                'song', 'title',
+                                'uid'
+                        ];
+                        const payload = {};
+                        orderedKeys.forEach(k => {
+                                if (formJSON[k] !== undefined) payload[k] = formJSON[k];
+                        });
+                        // Append any remaining fields (e.g., dailyType, hourlyType, song, title, date)
+                        Object.keys(formJSON).forEach(k => {
+                                if (!orderedKeys.includes(k)) payload[k] = formJSON[k];
+                        });
+
+                        console.log(JSON.stringify(payload, null, 2));
                         try {
-                                await Api.postScheduler(formJSON);
+                                await Api.postScheduler(payload);
                         } catch (error) {
                                 console.error('Failed to save schedule', error);
                                 alert('Failed to save schedule');
@@ -654,7 +684,7 @@ function populateForm() {
 				</div>
 				<div class="showDisplayDate">
 					<label for="scheduleData">Date:</label>
-					<input type="date" id="date" name="displaydate" min="2023-05-01" max="2060-12-31">
+					<input type="date" id="date" name="displaydate" min="2025-10-22" max="2060-12-31">
 				</div>
 				<div class="showDisplayHour">
 				  Hour:
