@@ -85,8 +85,7 @@
     uploadSong(formData) {
       return request('/uploadSong', {
         method: 'POST',
-        body: formData,
-        headers: { 'Cache-Control': 'no-cache' }
+        body: formData
       });
     },
     postScheduler(payload) {

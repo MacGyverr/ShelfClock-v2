@@ -20,7 +20,6 @@
 #define HAS_ONLINEWEATHER   true
 #define HAS_USWEATHER   true
 #define TEST_CLOCK    false
-
 #if HAS_RTC
   #include "RTClib.h"
   #endif
@@ -339,6 +338,10 @@ bool updateSettingsRequired = 0;
 DynamicJsonDocument jsonDoc(8192); // create a JSON document to store the data
 DynamicJsonDocument jsonScheduleData(8192);  //stores schedules
 File fsUploadFile;
+#if HAS_BUZZER
+bool lastSongUploadOk = false;
+String lastSongUploadMessage;
+#endif
 
 struct tm timeinfo; 
 CRGB LEDs[NUM_LEDS];
@@ -903,6 +906,25 @@ void setup() {
   FastLED.show();
    server.enableCrossOrigin(true);
   server.enableCORS(true);
+
+  // Explicit CORS preflight handling
+  server.on("/uploadSong", HTTP_OPTIONS, []() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "*");
+    server.send(204);
+  });
+
+  server.onNotFound([]() {
+    if (server.method() == HTTP_OPTIONS) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
+      server.sendHeader("Access-Control-Allow-Headers", "*");
+      server.send(204);
+      return;
+    }
+    server.send(404, "text/plain", "Not found");
+  });
 
   //Webpage Handlers for FileFS access to flash
   server.serveStatic("/", FileFS, "/index.html");  //send default webpage from root request
@@ -5886,10 +5908,28 @@ void loadWebPageHandlers() {
 #if HAS_BUZZER
   /*handling uploading song file */
 server.on("/uploadSong", HTTP_POST, []() {
+    // Send response after upload finished, based on status set in upload handler
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    if (lastSongUploadOk) {
+      DynamicJsonDocument doc(128);
+      doc["error"] = 0;
+      doc["message"] = lastSongUploadMessage.length() ? lastSongUploadMessage : "Upload Complete";
+      String out;
+      serializeJson(doc, out);
+      server.send(200, "application/json", out);
+    } else {
+      DynamicJsonDocument doc(128);
+      doc["error"] = 1;
+      doc["message"] = lastSongUploadMessage.length() ? lastSongUploadMessage : "Upload failed";
+      String out;
+      serializeJson(doc, out);
+      server.send(500, "application/json", out);
+    }
 }, []() {
-    server.sendHeader("Access-Control-Allow-Origin", "*");  // Set CORS header
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
+        lastSongUploadOk = false;
+        lastSongUploadMessage = "";
         const char* filename = upload.filename.c_str();
         char fullFilename[256];
         if (filename[0] != '/') {
@@ -5902,6 +5942,8 @@ server.on("/uploadSong", HTTP_POST, []() {
         fsUploadFile = FileFS.open(fullFilename, "w");
         if (!fsUploadFile) {
             Serial.println("Failed to open file for writing");
+            lastSongUploadOk = false;
+            lastSongUploadMessage = "Failed to open file";
         } else {
             Serial.println("Upload started");
         }
@@ -5916,13 +5958,13 @@ server.on("/uploadSong", HTTP_POST, []() {
             fsUploadFile.close();
             Serial.print("Upload Size: ");
             Serial.println(upload.totalSize);
-            server.send(200, "text/json", "{\"error\":0,\"message\":\"Upload Complete\"}");
-        //    listDir(FileFS, "/songs/", 0);
             getListOfSongs();
+            lastSongUploadOk = true;
+            lastSongUploadMessage = "Upload Complete";
         } else {
-            server.send(500, "text/json", "{\"error\":1,\"message\":\"Upload failed\"}");
+            lastSongUploadOk = false;
+            lastSongUploadMessage = "Upload failed";
         }
-  server.sendHeader("Connection", "close");
     }
 });
 
