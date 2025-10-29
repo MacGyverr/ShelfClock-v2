@@ -117,11 +117,13 @@ The clock will attempt to scroll the IP twice on bootup.
 
 ### Circuit Board Images
 
-![Circuit Board Front](https://github.com/MacGyverr/ShelfClock/blob/newer-vscode-wip/diagrams/circuitboard-front.PNG)
+![Circuit Board Layout](https://github.com/MacGyverr/ShelfClock-v2/blob/main/diagrams/circuitboard-see-through.PNG)
 
-![Circuit Board Back](https://github.com/MacGyverr/ShelfClock/blob/newer-vscode-wip/diagrams/circuitboard-back.PNG)
+![Circuit Board Front](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/circuitboard-front.PNG)
 
-![Circuit Board Assembled](https://github.com/MacGyverr/ShelfClock/blob/newer-vscode-wip/diagrams/20241115_173534.jpg)
+![Circuit Board Back](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/circuitboard-back.PNG)
+
+![Circuit Board Assembled](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/20241115_173534.jpg)
 
 
 ## Links to Code Examples Used
@@ -150,7 +152,7 @@ The latest version features a custom PCB layout, reducing the complexity of wiri
 
 ### Code Overhaul
 
-The new firmware in the `newer-vscode-wip` branch is optimized for better configuration options and has the following:
+The new firmware in this `v2` branch is optimized for better configuration options and has the following:
 
 - **FFT with 8 modes**
 - **Ability to use an external website for outside temps via an API key**
@@ -167,10 +169,11 @@ The new firmware in the `newer-vscode-wip` branch is optimized for better config
 - **It has the ability to compile without any extra hardware modules** (no DHT or RTL or INMP441 or light sensor, no problem). Just set what you have via `#DEFINE`.
 - **Deals with the `millis()` 49-day issue**
 - **All JSON settings to and from the webpages**
-- **More settings presets
-- **Ability to assign a setting preset to a scheduled event/alarm (dim and clock at 5pm, scrolling text, bright and alarm at 9am)
-- **Display local tidal heights via shelf lights
-- **Display local rain schedules for 2 weeks in the shelf lights 
+- **Store up to 4 settings presets**
+- **Ability to assign a setting preset to a scheduled event/alarm** (dim and clock at 5pm, scrolling text, bright and alarm at 9am)
+- **Display local tidal heights via shelf lights**
+- **Display local rain schedules for 2 weeks in the shelf lights**
+- **Configured to work with the IO ports built into the PCB**
 
 The custom PCB includes labeled sections for each component:
 
