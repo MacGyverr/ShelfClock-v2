@@ -119,11 +119,11 @@ The clock will attempt to scroll the IP twice on bootup.
 
 ![Circuit Board Layout](https://github.com/MacGyverr/ShelfClock-v2/blob/main/diagrams/circuitboard-see-through.PNG)
 
-![Circuit Board Front](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/circuitboard-front.PNG)
+![Circuit Board Front](https://github.com/MacGyverr/ShelfClock-v2/blob/main/diagrams/circuitboard-front.PNG)
 
-![Circuit Board Back](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/circuitboard-back.PNG)
+![Circuit Board Back](https://github.com/MacGyverr/ShelfClock-v2/blob/main/diagrams/circuitboard-back.PNG)
 
-![Circuit Board Assembled](https://github.com/MacGyverr/ShelfClock-v2/tree/main/diagrams/20241115_173534.jpg)
+![Circuit Board Assembled](https://github.com/MacGyverr/ShelfClock-v2/blob/main/diagrams/20241115_173534.jpg)
 
 
 ## Links to Code Examples Used
