@@ -2588,6 +2588,7 @@ void checkSleepTimer(){  //controls suspend mode
         if (SOUNDDETECTOR_averageAudioInput > 50) {sleepTimerCurrent = 0; isAsleep = 0;} //try it with the real sensor, the digital one was tripping false positives just as much
       #endif
     if ((suspendType != 0) && sleepTimerCurrent >= (suspendFrequency * 60)) {sleepTimerCurrent = 0; isAsleep = 1; allBlank(); }  //sleep enabled, been some amount of time, go to sleep
+	if (suspendType = 2) {shelfBlank();}//if suspend all leds in on, blank shelflights
   }
   #else
     #if HAS_SOUNDDETECTOR
@@ -2605,7 +2606,8 @@ void checkSleepTimer(){  //controls suspend mode
       SOUNDDETECTOR_averageAudioInput = (audio_input1 + audio_input2 + audio_input3 + audio_input4 + audio_input5) / 5;
       if (SOUNDDETECTOR_averageAudioInput > 50) {sleepTimerCurrent = 0; isAsleep = 0;} //try it with the real sensor, the digital one was tripping false positives just as much
       if ((suspendType != 0) && sleepTimerCurrent >= (suspendFrequency * 60)) {sleepTimerCurrent = 0; isAsleep = 1; allBlank(); }  //sleep enabled, been some amount of time, go to sleep
-    #endif
+	  if (suspendType = 2) {shelfBlank();}  //if suspend all leds in on, blank shelflights
+	      #endif
   #endif
 }
 
@@ -3089,6 +3091,13 @@ void allBlank() {   //clears all non-shelf LEDs to black
   FastLED.show();
   GetBrightnessLevel();
 }  // end of all-blank
+
+void shelfBlank() {   //clears all shelf LEDs to black
+  for (int i=SEGMENTS_LEDS; i<NUM_LEDS; i++) {
+    LEDs[i] = CRGB::Black;
+  }
+  FastLED.show();
+}  // end of shelf-blank
 
 
 void fakeClock(int loopy) {  //flashes 12:00 like all old clocks did
